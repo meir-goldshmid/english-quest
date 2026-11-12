@@ -364,7 +364,7 @@ button.me:hover { background: rgba(255,255,255,.5); }
 :root.neon .modal, :root.neon .dlg { background: linear-gradient(180deg, #141b34, #0b1020); color: var(--ink); box-shadow: 0 0 0 1px rgba(34,211,238,.35), 0 30px 80px rgba(0,0,0,.6); }
 :root.neon .progress { background: #1c2547; } :root.neon .progress i { background: linear-gradient(90deg, var(--pri), var(--pri2)); }
 .avatar { display: grid; place-items: center; border-radius: 50%; font-weight: 900; color: #04121a; background: conic-gradient(from 200deg, #22d3ee, #e879f9, #fbbf24, #22d3ee); box-shadow: 0 0 18px rgba(34,211,238,.5); margin: 0 auto; flex: none; letter-spacing: 1px; }
-.btn.arcade { margin-inline-start: auto; font-size: 15px; padding: 8px 14px; }
+.btn.arcade { font-size: 15px; padding: 8px 14px; }
 
 /* ================= Rush (challenge mode) ================= */
 body.rush-bg #app { max-width: 720px; }
@@ -487,3 +487,28 @@ svg.trail path { stroke-width: 10; }
 :root.neon .n-here { background: var(--pri); color: #04121a; }
 :root.neon .n-card { background: var(--card); box-shadow: 0 0 0 1px #26305a; }
 :root.neon .n-card .en { color: var(--ink); }
+
+/* ================= 3D lane runner ================= */
+body.run3d-bg #app { max-width: none; padding: 0; height: 100%; overflow: hidden; }
+body.run3d-bg { overflow: hidden; background: #0b1020; }
+.r3 { position: fixed; inset: 0; }
+.r3-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.r3-hud { position: absolute; top: 10px; inset-inline: 10px; display: flex; align-items: center; gap: 10px; z-index: 3; }
+.r3-hud .r-pts { margin-inline-start: auto; background: rgba(11,16,32,.55); border-radius: 14px; padding: 4px 10px; }
+.r3-hud .r-combo { min-width: 64px; }
+.r3-q { background: rgba(11,16,32,.55); color: #fff; border-radius: 99px; padding: 4px 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.r3-hearts { background: rgba(255,255,255,.8); }
+.r3-prompt { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 12px; max-width: min(92vw, 720px);
+  background: rgba(255,255,255,.94); color: #1f2547; border-radius: 22px; padding: 10px 18px; box-shadow: 0 8px 24px rgba(0,0,0,.25); animation: dlgIn .4s cubic-bezier(.2,1.6,.4,1); }
+.r3-em { font-size: 46px; line-height: 1; font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; }
+.r3-text { font-size: 24px; font-weight: 700; }
+:root.neon .r3-prompt { background: rgba(20,27,52,.92); color: var(--ink); box-shadow: 0 0 0 1px rgba(34,211,238,.5), 0 0 30px rgba(34,211,238,.25); }
+.r3-toast { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); z-index: 4; font-size: 26px; font-weight: 800; padding: 10px 22px; border-radius: 18px; pointer-events: none; animation: dlgIn .3s; max-width: 90vw; text-align: center; }
+.r3-toast.ok { background: rgba(34,197,94,.92); color: #fff; }
+.r3-toast.bad { background: rgba(239,68,68,.94); color: #fff; }
+.r3-help { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 3; background: rgba(0,0,0,.55); color: #fff; padding: 6px 14px; border-radius: 12px; font-size: 14px; transition: opacity 1s; white-space: nowrap; }
+.r3-help.fade { opacity: 0; }
+.r3-loading { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; color: #fff; background: #0b1020; text-align: center; padding: 20px; }
+.extra-modes { display: flex; gap: 8px; margin-inline-start: auto; flex-wrap: wrap; }
+.btn.run3d { --b1: #86efac; --b2: #22c55e; --edge: #15803d; --tx: #fff; font-size: 15px; padding: 8px 14px; text-shadow: 0 1px 0 rgba(0,0,0,.2); }
+:root.neon .btn.run3d { --b1: #e879f9; --b2: #a21caf; --edge: #701a75; border: 0; box-shadow: 0 4px 0 var(--edge), 0 0 18px rgba(232,121,249,.45); }

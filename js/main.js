@@ -8,7 +8,7 @@ import { buildLevel, buildArena, hash } from './levels.js';
 import { Game, drawHero } from './game.js';
 import { runChallenge, kindFor } from './challenges.js';
 import { runRush } from './rush.js';
-import { learnCards, storyScreen, ruleScreen, readingScreen, testScreen, gapItem, trItem, gradeWord } from './screens.js';
+import { learnCards, storyScreen, ruleScreen, readingScreen, testScreen, gapItem, trItem, gradeWord, fillGap } from './screens.js';
 import { SCHOOL } from './school.js';
 import { BADGES, checkBadges } from './badges.js';
 
@@ -214,7 +214,9 @@ function unitScreen(i) {
   app.append(h('div.topbar', {}, h('button.btn.round.back', { onclick: () => go('#/') }, '→'), h('div.title', {}, u.em + ' ', h('span.en', { dir: 'ltr' }, u.title), ' · ', u.he), statsBar()),
     h('div.unit-hero', {}, heroCanvas(80), h('div.unit-info', {}, h('div', {}, `עולם ${i + 1} מתוך ${UNITS.length}${u.grade ? ' · כיתה ' + u.grade + ' · ' + u.level : ''}`),
       h('small', {}, u.grammar ? h('span', { dir: 'ltr' }, u.grammar.rule) : `${u.words.length} מילים · ${u.sentences.length} משפטים · סיפור`)),
-      u.grammar ? h('button.btn.arcade', { onclick: () => go('#/arcade/' + i), title: 'בונוס – לא חובה' }, '🕹️ ארקייד (בונוס)') : null),
+      h('div.extra-modes', {},
+        h('button.btn.run3d', { onclick: () => go('#/run3d/' + i), title: 'בונוס – לא חובה' }, '🏃‍♂️ ריצה 3D'),
+        u.grammar ? h('button.btn.arcade', { onclick: () => go('#/arcade/' + i), title: 'בונוס – לא חובה' }, '🕹️ ארקייד') : null)),
     list);
 }
 
@@ -317,27 +319,67 @@ function runStage({ unit, k, events, theme, seed, difficulty, pool, title, boss 
 }
 
 // ---------- challenge mode (12+): timed rounds with combos and medals
-async function rushStage(u, k, qs, opts) {
-  clear(); document.body.className = 'rush-bg';
-  const i = unitIdx(u.id);
-  const r = await runRush(app, qs, { ...opts, onExit: () => go('#/unit/' + i) });
-  if (!document.body.classList.contains('rush-bg')) return;          // the player left mid-round
-  const stars = opts.boss && !r.beaten ? 0 : r.ratio >= 0.85 ? 3 : r.ratio >= 0.7 ? 2 : r.ratio >= 0.5 ? 1 : 0;
+// ---------- 3D lane runner (bonus mode for every track): run through the gate with the right answer
+function runnerQuestions(u, i) {
+  const its = items[i], pool = [...its, ...items.slice(Math.max(0, i - 2), i).flat()].filter(x => !x.sent && x.en.length <= 16);
+  const words = weakFirst(its.filter(x => !x.sent && x.en.length <= 16));
+  const pick2 = (it, key) => shuffle(pool.filter(p => p[key] && p[key] !== it[key] && p.en !== it.en && p.he !== it.he && p.em !== it.em)).slice(0, 2);
+  const mk = (it, options, rightLabel, prompt) => { const opts = shuffle([rightLabel, ...options]); return { prompt, options: opts, a: opts.indexOf(rightLabel), item: it, say: [it.en, 'en'], hint: it.he }; };
+  const wordQ = (it, n) => {
+    const kind = n % 4, d = pick2(it, kind === 1 ? 'em' : kind === 3 ? 'he' : 'en');
+    if (d.length < 2) return null;
+    if (kind === 0 && it.em) return mk(it, d.map(x => x.en), it.en, { em: it.em, text: 'מה זה באנגלית?' });
+    if (kind === 1 && it.em && d.every(x => x.em)) return mk(it, d.map(x => x.em), it.em, { text: '🔊 הקשב ובחר', audio: [it.en, 'en'] });
+    if (kind === 3) return mk(it, d.map(x => x.he), it.he, { text: it.en, audio: [it.en, 'en'] });
+    return mk(it, d.map(x => x.en), it.en, { text: it.he, audio: [it.he, 'he'] });
+  };
+  const qs = [];
+  if (u.gaps) {
+    shuffle(u.gaps).filter(g => g.s.length <= 80 && g.options.every(o => o.length <= 18)).slice(0, 6).forEach(g => {
+      const right = g.options[g.a], opts = shuffle([right, ...shuffle(g.options.filter((_, j) => j !== g.a)).slice(0, 2)]);
+      qs.push({ prompt: { text: g.s }, options: opts, a: opts.indexOf(right), item: gapItem(g), say: [fillGap(g), 'en'], hint: g.why });
+    });
+  }
+  for (let n = 0; qs.length < 10 && n < words.length * 2; n++) { const q = wordQ(words[n % words.length], n); if (q) qs.push(q); }
+  return shuffle(qs).slice(0, 10);
+}
+async function run3d(i) {
+  const u = UNITS[i]; if (!u || !S.unitUnlocked(UNITS, i)) return go('#/');
+  clear(); document.body.className = 'run3d-bg';
+  const { runRunner3D } = await import('./runner3d.js');
+  const qs = runnerQuestions(u, i);
+  const speed = u.track === 'teen' ? 15 : u.track === 'middle' ? 13 : 11;
+  const r = await runRunner3D(app, qs, { theme: u.theme, speed, look: S.st().look, neon: neon(), onExit: () => go('#/unit/' + i), onAnswer: (q, ok) => q.item && S.grade(q.item.en, ok) });
+  if (!document.body.classList.contains('run3d-bg')) return;
+  roundResult(r, { again: () => route(), back: () => go('#/unit/' + i), note: 'מצב בונוס – הנקודות נכנסות לטבלת המשפחה.' });
+}
+function roundResult(r, { stars = null, better = false, again, back, note = '' }) {
   S.addPoints(r.score); S.addXp(Math.round(r.score / 20));
-  const st = S.st().stats; if (opts.boss && r.beaten) st.bosses = (st.bosses || 0) + 1; st.bestCombo = Math.max(st.bestCombo || 0, r.bestCombo); S.save();
-  const better = S.finishStage(u.id, k, stars, Math.round(r.ratio * 100));
+  const st = S.st().stats; st.bestCombo = Math.max(st.bestCombo || 0, r.bestCombo); S.save();
   const box = h('div.modal-bg', {}, h('div.modal.result.rush-result', {},
     h('div.medal', {}, r.medal.em), h('div.medal-name', { dir: 'ltr' }, r.medal.name),
     h('div.r-stats', {},
       h('div', {}, h('b', {}, r.score.toLocaleString()), h('small', {}, 'נקודות')),
       h('div', {}, h('b', {}, Math.round(r.ratio * 100) + '%'), h('small', {}, 'דיוק')),
       h('div', {}, h('b', {}, 'x' + Math.min(4, 1 + Math.floor(r.bestCombo / 2))), h('small', {}, `רצף שיא ${r.bestCombo}`))),
-    h('div.big-stars', {}, [0, 1, 2].map(n => h('span' + (n < stars ? '.on' : ''), { style: { animationDelay: n * 0.2 + 's' } }, '★'))),
-    h('p.note', {}, stars ? (better ? 'שיא חדש! ' : '') + 'השלב הבא נפתח.' : opts.boss ? 'הבוס עדיין עומד. עוד ניסיון?' : 'צריך לפחות 50% כדי להתקדם. עוד סיבוב?'),
-    h('div.row', {}, h('button.btn', { onclick: () => { box.remove(); route(); } }, '🔁 שוב'), h('button.btn.primary', { onclick: () => { box.remove(); go('#/unit/' + i); } }, 'המשך ←'))));
+    stars == null ? null : h('div.big-stars', {}, [0, 1, 2].map(n => h('span' + (n < stars ? '.on' : ''), { style: { animationDelay: n * 0.2 + 's' } }, '★'))),
+    note ? h('p.note', {}, (better ? 'שיא חדש! ' : '') + note) : null,
+    h('div.row', {}, h('button.btn', { onclick: () => { box.remove(); again(); } }, '🔁 שוב'), h('button.btn.primary', { onclick: () => { box.remove(); back(); } }, 'המשך ←'))));
   document.body.append(box);
   if (r.ratio >= 0.85) confetti();
   announceBadges();
+}
+
+async function rushStage(u, k, qs, opts) {
+  clear(); document.body.className = 'rush-bg';
+  const i = unitIdx(u.id);
+  const r = await runRush(app, qs, { ...opts, onExit: () => go('#/unit/' + i) });
+  if (!document.body.classList.contains('rush-bg')) return;          // the player left mid-round
+  const stars = opts.boss && !r.beaten ? 0 : r.ratio >= 0.85 ? 3 : r.ratio >= 0.7 ? 2 : r.ratio >= 0.5 ? 1 : 0;
+  if (opts.boss && r.beaten) { const st = S.st().stats; st.bosses = (st.bosses || 0) + 1; }
+  const better = S.finishStage(u.id, k, stars, Math.round(r.ratio * 100));
+  roundResult(r, { stars, better, again: () => route(), back: () => go('#/unit/' + i),
+    note: stars ? 'השלב הבא נפתח.' : opts.boss ? 'הבוס עדיין עומד. עוד ניסיון?' : 'צריך לפחות 50% כדי להתקדם. עוד סיבוב?' });
 }
 function arcade(i) {
   const u = UNITS[i]; if (!u?.grammar || !S.unitUnlocked(UNITS, i)) return go('#/');
@@ -552,6 +594,7 @@ function route() {
   if (r === 'school') return schoolPage();
   if (r === 'leaders') return leaders();
   if (r === 'arcade') return arcade(+a);
+  if (r === 'run3d') return run3d(+a);
   if (r === 'parent') return parent();
   home();
 }

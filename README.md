@@ -28,6 +28,9 @@ A cartoon platformer can feel childish to older kids, so the middle-school and h
 - **Ranks:** lifetime points earn Bronze, Silver (1,500), Gold (5,000), Platinum (12,000) and Diamond (25,000).
 - **Arcade:** the platformer is still there as an optional "🕹️ ארקייד (בונוס)" button on each world. It isn't needed to progress.
 
+### 🏃‍♂️ 3D run (bonus mode, every track)
+A 3D lane runner (Three.js, loaded only when the mode opens). The question appears at the top of the screen, and Beri runs through the gate with the right answer while jumping bars, dodging crates and collecting coins. Kids get words, pictures and listening; the older tracks get fill-the-gap grammar. Controls: arrow keys and space, or swipe and tap on a phone. Points count toward the family leaderboard. It needs internet the first time, to load the 3D library.
+
 **Family leaderboard (🏆):** weekly points for every player on the device, reset each Sunday.
 
 ## The game
@@ -59,6 +62,7 @@ The 🎤 parts use the browser's Web Speech API (Chrome, Edge, Android, Safari o
 | `js/game.js`, `js/levels.js` | Platformer engine, level generator and boss arena. All art is drawn in code. |
 | `js/challenges.js` | All challenge types, including gap, transform and read-aloud |
 | `js/rush.js` | Challenge mode: timer, combo, points, medals, Boss Rush |
+| `js/runner3d.js` | 3D lane runner (Three.js r160 from jsDelivr, loaded when opened) |
 | `js/screens.js` | Learn cards, story, grammar rule, reading and test |
 | `js/main.js` | Map, stages, players, review, shop, badges, parent area |
 | `js/store.js` | Players and progress in localStorage, one JSON blob per player |
