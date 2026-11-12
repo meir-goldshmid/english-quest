@@ -12,7 +12,7 @@ import edge_tts
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RATE = {'en': '-12%', 'he': '-5%'}
-WORKERS = 6
+WORKERS = 10
 
 
 def texts():

@@ -57,7 +57,7 @@ ol.sent li { margin-bottom: 4mm; break-inside: avoid; }
 .tokens span { border: 2px solid var(--pri); border-radius: 3mm; padding: .5mm 3mm; font-size: 18px; font-weight: 600; }
 
 .st-title { margin: 2mm 0; font-size: 24px; }
-.dialog p { margin: 1.5mm 0; font-size: 20px; }
+.dialog p { margin: 1.2mm 0; font-size: 19px; }
 ol.qs li { margin: 4mm 0; font-size: 19px; }
 .opts { display: flex; gap: 10mm; margin-top: 1.5mm; }
 ol.qs small { color: #5b6386; font-size: 14px; }
@@ -75,3 +75,14 @@ ol.qs small { color: #5b6386; font-size: 14px; }
 .sheet h2, .sheet .instr, .sheet .name, .sheet .he, .sheet .ans { direction: rtl; text-align: right; }
 .sheet .box .he { text-align: center; }
 .sheet h2 small { display: none; }
+.rule-box { border: 3px solid var(--pri); border-radius: 4mm; padding: 4mm 5mm; margin-bottom: 5mm; background: #faf5ff; }
+.rule-en { font-size: 24px; font-weight: 700; color: var(--pri); text-align: left; }
+.rule-box .he { line-height: 1.6; margin-top: 2mm; }
+.dict td.word.ex { width: auto; font-size: 16px; font-weight: 600; }
+.rule-box .he { font-size: 15px; }
+ol.gapq { padding-inline-start: 7mm; font-size: 18px; }
+ol.gapq li { margin-bottom: 4.5mm; break-inside: avoid; }
+ol.gapq .opts { margin-top: 1mm; font-size: 16px; }
+.unseen { font-size: 17px; line-height: 1.75; text-align: justify; white-space: pre-line; border-left: 3px solid var(--line); padding-left: 4mm; }
+.opts.col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm 6mm; }
+ol.qs li { break-inside: avoid; }

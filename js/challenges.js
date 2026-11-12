@@ -3,7 +3,7 @@
 import { h, en, shuffle, sample, wait } from './ui.js';
 import { say, trio, sfx, stop } from './audio.js';
 import { grade, st, save } from './store.js';
-import { canRecognize, listenOnce, judge } from './speech.js';
+import { canRecognize, listenOnce, judge, norm } from './speech.js';
 
 const PRAISE = ['Great job!', 'Awesome!', 'Super!', 'Well done!', 'Excellent!', 'You got it!', 'Fantastic!'];
 const praise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
@@ -48,6 +48,7 @@ export function runChallenge(host, ch) {
         const fb = h('div.feedback', {},
           h('div.fb-title', {}, 'התשובה הנכונה:'),
           h('div.fb-answer', {}, item.em && !item.sent ? h('span.big-emoji.sm', {}, item.em) : null, en(item.en, 'b'), h('span.he', {}, ' – ' + item.he)),
+          item.why ? h('div.why', {}, '💡 ' + item.why) : null,
           h('button.btn.primary', { onclick: () => { stop(); resolve({ ok: false }); } }, 'המשך ←'));
         card.append(fb);
         trio(item.en, item.he);
@@ -132,6 +133,41 @@ export function runChallenge(host, ch) {
         h('button.btn.ghost', { onclick: () => { if (done) return; const k = picked.findIndex((t, i) => t.v.toLowerCase() !== target[i].toLowerCase()); if (k >= 0 || picked.length < target.length) { tries = Math.max(tries, 1); const at = k >= 0 ? k : picked.length; picked.splice(at).forEach(t => t.used = false); const nt = tiles.find(t => !t.used && t.v.toLowerCase() === target[at].toLowerCase()); if (nt) { nt.used = true; picked.push(nt); } render(); if (picked.length === target.length) check(); } } }, '💡 רמז'));
       render();
       say(isSent ? item.en : item.en, 'en');
+    } else if (kind === 'gap') {
+      // grammar: choose the word that fills the blank; the full sentence is read after answering
+      const g = item.gap, [pre, post] = g.s.split('___');
+      const blank = h('b.blank', {}, '___');
+      const opts = shuffle(g.options.map((o, j) => ({ o, j })));
+      card.append(h('div.ask', {}, '🧩 השלם את המשפט'),
+        h('div.prompt-en.sent.gap-line', { dir: 'ltr' }, pre, blank, post),
+        h('div.sub-he.soft', {}, item.he),
+        h('div.options' + (opts.length > 3 ? '.grid' : ''), {}, opts.map(({ o, j }) => {
+          const b = h('button.opt', { dir: 'ltr', onclick: () => {
+            if (done || card.classList.contains('locked')) return;
+            card.classList.add('locked'); blank.textContent = /^no punctuation$/i.test(g.options[g.a]) ? '∅' : g.options[g.a];
+            if (j === g.a) { b.classList.add('right'); blank.classList.add('ok'); if (item.why) card.append(h('div.why', {}, '💡 ' + item.why)); finish(true); }
+            else { b.classList.add('wrong'); sfx('bad'); blank.classList.add('fix'); [...card.querySelectorAll('.opt')].find(x => x._j === g.a)?.classList.add('right'); finish(false); }
+          } }, o);
+          b._j = j; return b;
+        })));
+    } else if (kind === 'transform') {
+      // grammar: type the changed word or sentence (plural, past, passive, wish ...)
+      const t = item.tr; let tries = 0;
+      const ok = v => [item.en, ...(t.alt || [])].some(a => norm(a) === norm(v));
+      const inp = h('input.type-in', { dir: 'ltr', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', autocorrect: 'off', placeholder: '...' });
+      const msg = h('div.type-msg');
+      const submit = () => {
+        if (done) return;
+        if (ok(inp.value)) { st().stats.typed++; save(); return finish(tries === 0); }
+        tries++; sfx('bad'); inp.classList.add('shake'); setTimeout(() => inp.classList.remove('shake'), 500);
+        msg.textContent = tries >= 2 ? '' : 'כמעט! בדוק שוב את הצורה (זמן, סיומת, סדר מילים).';
+        if (tries >= 2) finish(false);
+      };
+      card.append(h('div.ask', {}, '🔁 שנה לפי ההוראה'),
+        h('div.task-chip', { dir: 'ltr' }, t.task),
+        h('div.prompt-en.sent', { dir: 'ltr' }, t.q), t.he ? h('div.sub-he.soft', {}, t.he) : null,
+        h('form.type-form', { onsubmit: e => { e.preventDefault(); submit(); } }, inp, h('button.btn.primary', { type: 'submit' }, 'בדיקה ✓')), msg);
+      setTimeout(() => inp.focus(), 100);
     } else if (kind === 'type') {
       let tries = 0;
       const inp = h('input.type-in', { dir: 'ltr', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', autocorrect: 'off', placeholder: '...' });
@@ -154,7 +190,9 @@ export function runChallenge(host, ch) {
         h('button.btn.ghost', { onclick: () => { if (done) return; tries = Math.max(tries, 1); const t = item.en; let v = inp.value; let k = 0; while (k < v.length && v[k].toLowerCase() === t[k]?.toLowerCase()) k++; inp.value = t.slice(0, k + 1); inp.focus(); } }, '💡 עוד אות'));
       say(item.en, 'en');
       setTimeout(() => inp.focus(), 100);
-    } else if (kind === 'speak') {
+    } else if (kind === 'speak' || kind === 'read') {
+      // read = read it aloud without hearing it first (reading practice); the speaker button is a hint
+      const reading = kind === 'read';
       let tries = 0;
       const status = h('div.speak-status', {}, canRecognize() ? 'לחץ על המיקרופון ואמור באנגלית' : 'אמור בקול באנגלית, ואז לחץ "אמרתי!"');
       const mic = h('button.btn.mic', { onclick: async () => {
@@ -173,15 +211,19 @@ export function runChallenge(host, ch) {
         status.textContent = alts.length ? 'שמעתי: ' : 'לא שמעתי טוב. ';
         if (alts.length) status.append(en(r.heard || alts[0], 'b'), ' – בוא ננסה שוב!'); else status.append('דבר חזק וקרוב לטלפון 🙂');
         if (tries >= 2) skipBtn.hidden = false;
-        say(item.en, 'en');
+        if (!reading || tries >= 2) say(item.en, 'en');
       } }, '🎤');
       const selfBtn = h('button.btn.primary', { hidden: canRecognize() ? true : null, onclick: () => { st().stats.spoken++; save(); grade(item.en, true); finish(true, { noGrade: true }); } }, 'אמרתי! ✓');
       const skipBtn = h('button.btn.ghost', { hidden: true, onclick: () => finish(false) }, 'דלג ←');
-      card.append(h('div.ask', {}, '🗣️ תגיד באנגלית!'),
-        item.em && !item.sent ? h('div.big-emoji.huge', {}, item.em) : null,
-        h('div.prompt-en' + (item.sent ? '.sent' : ''), { dir: 'ltr' }, item.en), h('div.sub-he', {}, item.he),
-        soundBtns(item), h('div.mic-row', {}, mic), status, h('div.row', {}, selfBtn, skipBtn));
-      say(item.en, 'en');
+      const heLine = h('div.sub-he', {}, reading ? '' : item.he);
+      const hint = h('div.sound-row', {},
+        h('button.btn.round', { title: 'הקשב', onclick: () => { if (reading) { tries = Math.max(tries, 1); heLine.textContent = item.he; } say(item.en, 'en'); } }, '🔊'),
+        h('button.btn.round', { title: 'לאט', onclick: () => { if (reading) tries = Math.max(tries, 1); say(item.en, 'en', { rate: 0.65 }); } }, '🐢'));
+      card.append(h('div.ask', {}, reading ? '📖 קרא בקול באנגלית!' : '🗣️ תגיד באנגלית!'),
+        item.em && !item.sent && !reading ? h('div.big-emoji.huge', {}, item.em) : null,
+        h('div.prompt-en' + (item.sent ? '.sent' : ''), { dir: 'ltr' }, item.en), heLine,
+        hint, h('div.mic-row', {}, mic), status, h('div.row', {}, selfBtn, skipBtn));
+      if (!reading) say(item.en, 'en');
     }
   });
 }

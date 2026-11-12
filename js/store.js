@@ -1,38 +1,87 @@
-// Progress, settings and spaced repetition. One JSON blob in localStorage (easy to sync to a cloud DB later).
-const KEY = 'english-quest-v1';
-export const STAGES = [
-  { id: 'learn', em: '📖', name: 'לומדים מילים', short: 'מילים' },
-  { id: 'run1', em: '🏃', name: 'שלב ריצה: מילים', short: 'ריצה 1' },
-  { id: 'sent', em: '💬', name: 'לומדים משפטים', short: 'משפטים' },
-  { id: 'run2', em: '🗣️', name: 'שלב ריצה: מדברים', short: 'ריצה 2' },
-  { id: 'story', em: '📜', name: 'סיפור', short: 'סיפור' },
-  { id: 'boss', em: '👑', name: 'קרב בוס', short: 'בוס' },
+// Players, progress, settings and spaced repetition. Each player is one JSON blob in localStorage.
+const BASE = 'english-quest-v1', PKEY = 'english-quest-profiles';
+
+// Stages per track. Kids: words, run, sentences, speaking run, story, boss.
+// Grammar tracks (12+ / 14+): rule, words, grammar run, reading, speaking run, test, boss.
+export const STAGES_KIDS = [
+  { id: 'learn', em: '📖', name: 'לומדים מילים' },
+  { id: 'run1', em: '🏃', name: 'שלב ריצה: מילים' },
+  { id: 'sent', em: '💬', name: 'לומדים משפטים' },
+  { id: 'run2', em: '🗣️', name: 'שלב ריצה: מדברים' },
+  { id: 'story', em: '📜', name: 'סיפור' },
+  { id: 'boss', em: '👑', name: 'קרב בוס' },
 ];
+export const STAGES_G = [
+  { id: 'rule', em: '📘', name: 'כלל הדקדוק' },
+  { id: 'learn', em: '📖', name: 'אוצר מילים' },
+  { id: 'grun', em: '🏃', name: 'ריצת דקדוק' },
+  { id: 'reading', em: '📰', name: 'הבנת הנקרא' },
+  { id: 'run2', em: '🗣️', name: 'ריצת דיבור' },
+  { id: 'test', em: '📝', name: 'מבחן' },
+  { id: 'boss', em: '👑', name: 'קרב בוס' },
+];
+export const stagesFor = u => (u && u.grammar ? STAGES_G : STAGES_KIDS);
 
 const DEF = () => ({
-  v: 1, name: '', coins: 0,
+  v: 1, name: '', track: 'kids', coins: 0,
   look: { hoodie: '#ff7a1a', cap: '#2463eb', hat: 'cap', extra: '' },
   owned: ['hoodie:#ff7a1a', 'cap:#2463eb', 'hat:cap'],
-  stages: {},       // 'unitId:stageIdx' -> { stars, at }
+  stages: {},       // 'unitId:stageIdx' -> { stars, at, score? }
   items: {},        // english text -> { b: box 0..5, due: ms, r: right, w: wrong }
   days: {},         // 'YYYY-MM-DD' -> { xp, sec }
   stats: { spoken: 0, typed: 0, answers: 0, right: 0 },
-  settings: { order: 'ehe', slow: false, music: true, sfx: true, unlockAll: false, autoHe: true },
+  badges: [],
+  settings: { order: 'ehe', slow: false, music: true, sfx: true, unlockAll: false },
 });
+
+// ---- players
+function readProfiles() {
+  let P = null;
+  try { P = JSON.parse(localStorage.getItem(PKEY) || 'null'); } catch (e) { }
+  if (!P || !Array.isArray(P.list)) {
+    P = { list: [], cur: null };
+    try { const old = JSON.parse(localStorage.getItem(BASE) || 'null'); if (old?.name) { P.list.push({ id: 'p1', name: old.name, track: old.track || 'kids' }); P.cur = 'p1'; } } catch (e) { }
+  }
+  return P;
+}
+let P = readProfiles();
+const keyFor = id => id === 'p1' ? BASE : `${BASE}:${id}`;     // the first player keeps the original key (no data migration needed)
+function writeProfiles() { try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) { } }
+export const profiles = () => P.list;
+export const currentProfile = () => P.list.find(p => p.id === P.cur) || null;
+export function addProfile(name, track) {
+  const id = P.list.some(p => p.id === 'p1') ? 'p' + Date.now().toString(36) : 'p1';
+  P.list.push({ id, name, track }); P.cur = id; writeProfiles();
+  S = Object.assign(DEF(), { name, track }); save();
+  return id;
+}
+export function switchProfile(id) { if (P.list.some(p => p.id === id)) { P.cur = id; writeProfiles(); S = null; load(); } }
+export function removeProfile(id) {
+  P.list = P.list.filter(p => p.id !== id); try { localStorage.removeItem(keyFor(id)); } catch (e) { }
+  P.cur = P.list[0]?.id || null; writeProfiles(); S = null; load();
+}
+function syncProfile() { const p = currentProfile(); if (p && S) { p.name = S.name; p.track = S.track; writeProfiles(); } }
 
 let S;
 export function load() {
-  try { S = Object.assign(DEF(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { S = DEF(); }
+  const p = currentProfile();
+  if (!p) { S = DEF(); return S; }
+  try { S = Object.assign(DEF(), JSON.parse(localStorage.getItem(keyFor(p.id)) || '{}')); } catch (e) { S = DEF(); }
   S.settings = Object.assign(DEF().settings, S.settings);
   S.stats = Object.assign(DEF().stats, S.stats);
+  S.track ||= p.track || 'kids'; S.name ||= p.name;
   return S;
 }
 export const st = () => S || load();
-export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode – progress lives for this visit */ } }
+export function save() {
+  const p = currentProfile(); if (!p) return;
+  try { localStorage.setItem(keyFor(p.id), JSON.stringify(S)); } catch (e) { /* private mode – progress lives for this visit */ }
+  syncProfile();
+}
 
 export const today = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 export function addXp(n) { const d = S.days[today()] ||= { xp: 0, sec: 0 }; d.xp += n; save(); }
-export function addTime(sec) { const d = S.days[today()] ||= { xp: 0, sec: 0 }; d.sec += sec; save(); }
+export function addTime(sec) { if (!currentProfile()) return; const d = S.days[today()] ||= { xp: 0, sec: 0 }; d.sec += sec; save(); }
 export function streak() {
   let n = 0; const d = new Date();
   if (!S.days[today(d)]) d.setDate(d.getDate() - 1);          // today not played yet – streak still alive from yesterday
@@ -44,13 +93,16 @@ export const DAILY_GOAL = 60;
 // ---- stage progress
 export const stageKey = (u, i) => `${u}:${i}`;
 export const stageStars = (u, i) => S.stages[stageKey(u, i)]?.stars || 0;
-export function finishStage(u, i, stars) {
-  const k = stageKey(u, i), old = S.stages[k]?.stars || 0;
-  S.stages[k] = { stars: Math.max(old, stars), at: Date.now() };
+export const stageScore = (u, i) => S.stages[stageKey(u, i)]?.score ?? null;
+export function finishStage(u, i, stars, score) {
+  const k = stageKey(u, i), old = S.stages[k] || {};
+  S.stages[k] = { stars: Math.max(old.stars || 0, stars), at: Date.now() };
+  const best = Math.max(old.score ?? -1, score ?? -1);
+  if (best >= 0) S.stages[k].score = best;
   save();
-  return stars > old;
+  return stars > (old.stars || 0);
 }
-export function unitDone(u) { return stageStars(u.id, STAGES.length - 1) > 0; }
+export function unitDone(u) { return stageStars(u.id, stagesFor(u).length - 1) > 0; }
 export function unitUnlocked(units, idx) { return S.settings.unlockAll || idx === 0 || unitDone(units[idx - 1]); }
 export function stageUnlocked(units, idx, si) {
   return unitUnlocked(units, idx) && (S.settings.unlockAll || si === 0 || stageStars(units[idx].id, si - 1) > 0);
@@ -68,11 +120,10 @@ export function grade(text, ok) {
   S.stats.answers++; if (ok) S.stats.right++;
   save();
 }
-export const seen = text => !!S.items[text];
 export const box = text => S.items[text]?.b ?? -1;
 export const isDue = text => { const it = S.items[text]; return !!it && it.due <= Date.now(); };
 export const mastered = () => Object.values(S.items).filter(i => i.b >= 3).length;
 
-export function reset() { S = DEF(); save(); }
+export function reset() { const { name, track } = S; S = Object.assign(DEF(), { name, track }); save(); }
 export function exportJson() { return JSON.stringify(S); }
 export function importJson(txt) { const o = JSON.parse(txt); if (!o || o.v !== 1) throw new Error('bad file'); S = Object.assign(DEF(), o); save(); }

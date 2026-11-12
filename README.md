@@ -1,59 +1,61 @@
 # English Quest 🏃‍♂️⭐
 
-An adventure game that teaches English to Hebrew-speaking kids (about age 8–11) who are starting from almost zero. The goal is talking, reading and writing. Plain HTML/JS with no build step. It runs in any modern browser and installs to the home screen as an app.
+An adventure game that teaches English to Hebrew-speaking kids and teens: talking, reading, writing and school grammar. Plain HTML/JS with no build step. It runs in any modern browser and installs to the home screen as an app.
 
 **Play:** https://meir-goldshmid.github.io/english-quest/
 **Printable worksheets:** https://meir-goldshmid.github.io/english-quest/print.html
 
-## How it plays
-There are 24 worlds, from *ABC & Sounds* up to *Real Conversations*. They hold 546 words and 305 sentences, and each world has its own story. Every world has 6 stages:
+## Tracks (each player picks one; several players can share a device)
+| Track | Ages / grades | Level | Worlds |
+|---|---|---|---|
+| 🧒 Kids | 8–10 · grades 3–5 | Pre-A1 → A1 | 48 worlds in two seasons: 1,045 words and 632 sentences, each world with a story and a reading (phonics) rule |
+| 🧑‍🎓 Middle school | 11–13 · grades 6–8 | A1 → A2 | 16 grammar worlds: plurals and articles, pronouns, present and past tenses, quantifiers, comparatives, future, modals, present perfect, gerunds, relative clauses, conditionals, passive, reported speech |
+| 🎓 High school & Bagrut | 14–16 · grades 9–11 | A2 → B1/B2 | 16 worlds: narrative and perfect tenses, passive, reported speech, conditionals 0–3, wish, modal perfect, future perfect, connectors, word formation, Bagrut-style unseen texts, writing |
 
-| Stage | What he does | Skill |
-|---|---|---|
-| 📖 Learn words | Picture cards. Each card says the word in English, then Hebrew, then English again. 🐢 plays it slower and 🎤 lets him say it. | listening, speaking |
-| 🏃 Run 1 | Side-scrolling platformer. Hitting a **?** block opens a word challenge (listen → picture, picture → word, Hebrew → English, read → Hebrew). An **ABC gate** opens only after he jumps to collect the word's letters in the right order. | listening, reading, spelling |
-| 💬 Learn sentences | Sentence cards with audio. | reading, listening |
-| 🗣️ Run 2 | Sentence blocks. Some ask what a sentence means, some what he heard, and some have him build the sentence from word tiles. A **🎤 speaking door** opens when he says the word or sentence out loud. | speaking, grammar |
-| 📜 Story | A short dialog with voiced characters, then 3 questions. Then he plays one of the characters and says their lines. | reading, conversation |
-| 👑 Boss | Each right answer (spelling, typing, building sentences, speaking) throws a star at the boss. | writing |
+The in-game **🏫 מה לומדים בכיתה** page shows each Israeli school stage, its level (CEFR), the grammar taught there, and the worlds that practise it. Sources: the Ministry of Education [English Curriculum 2020](https://meyda.education.gov.il/files/Mazkirut_Pedagogit/English/Curriculum2020.pdf) for levels and grades (Tables 2 and 4), and the [Revised English Curriculum 2018](https://meyda.education.gov.il/files/Mazkirut_Pedagogit/English/curriculum2018.pdf) for the grammar lists per level.
 
-- **Daily review:** words he got wrong come back through spaced repetition, as a bonus level.
-- **Rewards:** coins, a daily goal, a streak, and a shop with clothes and hats for the hero.
-- **Parent area:** progress, weakest words, minutes played per day, settings and backup. To enter, answer a multiplication question.
+## Stages in each world
+**Kids:** 📖 words → 🏃 run (word blocks, ABC spelling gates) → 💬 sentences → 🗣️ speaking run (🎤 doors, read-aloud doors) → 📜 story (questions, then role play or reading the story aloud) → 👑 boss.
+
+**Middle / High school:** 📘 grammar rule with a quick check → 📖 vocabulary → 🏃 grammar run (fill-the-gap and transform blocks) → 📰 unseen reading (tap a word to translate it) → 🗣️ speaking run → 📝 test (score out of 100; 55 to pass) → 👑 boss.
+
+## The game
+- **Platformer:** coyote time and jump buffering, moving platforms and lifts, 4 enemy kinds (walker, hopper, flyer, and spiky, which can't be stomped), and power-ups from right answers: 👟 jump shoes, 🧲 coin magnet, 🛡️ shield, 🌟 star.
+- **Boss fights** are platformer arenas. Hit a ❓ block and answer correctly, and your star hits the boss. Dodge the balls it throws.
+- **Around the game:** an illustrated map with a trail, 24 badges, a shop for outfits, a daily goal, a streak, and spaced-repetition daily review.
+- **Parent area** (a multiplication question to enter): progress, weakest items, minutes per day, track, audio order and backup.
 
 ## Audio
-`tools/make_audio.py` records every word, sentence and story line in English and Hebrew with **edge-tts**. Those are Microsoft's free neural voices: Jenny for English, Ana and Andrew for the story characters, and Hila for Hebrew. The game plays the files and falls back to the browser's own voice for anything that has no clip.
-
+`tools/make_audio.py` records every word, sentence, story line, grammar example and reading text in English and Hebrew with **edge-tts**, Microsoft's free neural voices. It records only new texts. Run it twice, because the service sometimes drops a clip.
 ```
 python -m pip install edge-tts
-python tools/make_audio.py      # only new or changed texts are recorded
+python tools/make_audio.py
 ```
-
-The playback order is set in Parent area → Settings: English–Hebrew–English (default), Hebrew–English–Hebrew, or English–Hebrew.
 
 ## Speaking
-Speech recognition uses the browser's Web Speech API (Chrome, Edge, Android, Safari on iOS 14.5 and later). It needs internet and permission to use the microphone. Matching is lenient for kids: one-letter slips are accepted, and about 70% of a sentence's words is enough. Where recognition isn't available, an "אמרתי!" (I said it) button appears instead.
+The 🎤 parts use the browser's Web Speech API (Chrome, Edge, Android, Safari on iOS 14.5 and later). They need internet and permission to use the microphone. Matching is lenient for kids: one-letter slips are accepted, and about 70% of a sentence's words is enough. Where recognition isn't available, an "אמרתי!" (I said it) button appears instead.
 
 ## Run locally
-```
-python -m http.server 8790
-```
-Open http://localhost:8790. The microphone only works on localhost or https.
+`python -m http.server 8790`, then open http://localhost:8790. The microphone only works on localhost or https.
 
 ## Files
 | File | What |
 |---|---|
-| `js/content.js` | The curriculum: 24 units of words, sentences and stories. Add to it here, then re-run `make_audio.py`. |
-| `js/game.js`, `js/levels.js` | Platformer engine and level generator. All art is drawn in code. |
-| `js/challenges.js` | All challenge types |
-| `js/screens.js` | Learn cards, story and boss |
-| `js/main.js` | Map, stages, review, shop, parent area |
-| `js/store.js` | Progress and spaced repetition, kept in localStorage as one JSON blob |
-| `print.html`, `js/print.js` | A4 worksheets per world: picture dictionary with copy lines, matching, missing letters, scrambled words, word search, sentence building, story reading, plus an optional answer key |
+| `js/content.js`, `js/content2a.js`, `js/content2b.js` | Kids course: Season 1, and Season 2 in two parts |
+| `js/track_middle_*.js`, `js/track_teen_*.js` | Grammar tracks: rule, words, sentences, gaps, transforms and reading for each unit |
+| `js/curriculum.js` | Combines the courses into tracks |
+| `js/school.js` | The school-grade comparison |
+| `js/game.js`, `js/levels.js` | Platformer engine, level generator and boss arena. All art is drawn in code. |
+| `js/challenges.js` | All challenge types, including gap, transform and read-aloud |
+| `js/screens.js` | Learn cards, story, grammar rule, reading and test |
+| `js/main.js` | Map, stages, players, review, shop, badges, parent area |
+| `js/store.js` | Players and progress in localStorage, one JSON blob per player |
+| `print.html`, `js/print.js` | A4 worksheets for every track, with an optional answer key |
 
 ## Privacy
-This repo is public, so it holds no family details. The player's name is typed in on first launch and stays in that browser only. You can also open `<site>/#name=<name>` once to set it. Progress lives in the browser too, so use Parent area → Backup to move it to another device.
+This repo is public, so it holds no family details. Players type their names on first launch, and the names stay in that browser. You can also open `<site>/#name=<name>&track=kids|middle|teen` once to create a player. Progress lives in the browser, so use Parent area → Backup to move it to another device.
 
 ## Verified / not verified
-- Verified in desktop Chrome: map, unlocking, learn cards, Run 1 (blocks, spelling gate, finish), Run 2 (sentence blocks, speaking door opens the challenge), story, boss, results, and the worksheets fit A4 in all 24 worlds.
+- Verified in desktop Chrome (see the latest commit): map, players and tracks, all stage types, boss arena, results, worksheets.
 - Not verified: speech recognition with a real child's voice, touch controls on a real phone or tablet, and Safari on iOS.
+- Grammar content was written for this project and checked automatically for structure (one blank per gap, valid answers, no repeated words). A teacher has not reviewed it.

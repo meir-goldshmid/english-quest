@@ -1,16 +1,26 @@
 // Non-platformer stages: word/sentence cards, story, boss battle.
-import { h, en, shuffle, sample, wait, confetti } from './ui.js';
+import { h, en } from './ui.js';
 import { say, trio, sfx, stop } from './audio.js';
-import { runChallenge, kindFor } from './challenges.js';
-import { drawHero } from './game.js';
-import { st, addXp, save } from './store.js';
+import { runChallenge } from './challenges.js';
+import { st, save } from './store.js';
 import { canRecognize, listenOnce, judge } from './speech.js';
 
 // ---------- learn cards (words or sentences)
-export function learnCards(root, items, { title, onDone, onExit }) {
+export function learnCards(root, items, { title, onDone, onExit, rule }) {
   let i = 0;
+  // the reading rule (phonics) is shown as a last card
+  const showRule = () => {
+    count.textContent = '';
+    body.innerHTML = '';
+    body.append(h('div.progress', {}, h('i', { style: { width: '100%' } })),
+      h('div.card.rule', {}, h('div.ask', {}, '🔎 כלל קריאה'), h('div.card-en', { dir: 'ltr' }, rule.rule), h('div.card-he', {}, rule.he),
+        h('div.rule-words', { dir: 'ltr' }, rule.words.map(w => h('button.tile', { onclick: () => say(w, 'en') }, w)))),
+      h('p.note', {}, 'נסה לקרוא כל מילה לבד, ורק אחר כך לחץ עליה כדי לשמוע.'),
+      h('div.nav-row', {}, h('button.btn', { onclick: () => { i = items.length - 1; show(); } }, '→ הקודם'),
+        h('button.btn.primary', { onclick: () => { stop(); onDone(3); } }, 'סיימתי! ⭐')));
+  };
   const body = h('div.learn');
-  root.append(h('div.topbar', {}, h('button.btn.round', { onclick: () => { stop(); onExit(); } }, '✕'), h('div.title', {}, title), h('div.count')), body);
+  root.append(h('div.topbar', {}, h('button.btn.round.exit', { onclick: () => { stop(); onExit(); } }, '✕'), h('div.title', {}, title), h('div.count')), body);
   const count = root.querySelector('.count');
   const show = () => {
     const it = items[i];
@@ -40,7 +50,7 @@ export function learnCards(root, items, { title, onDone, onExit }) {
       micMsg,
       h('div.nav-row', {},
         h('button.btn', { disabled: i === 0 ? true : null, onclick: () => { i--; show(); } }, '→ הקודם'),
-        h('button.btn.primary', { onclick: () => { if (i < items.length - 1) { i++; show(); } else { stop(); onDone(3); } } }, i < items.length - 1 ? 'הבא ←' : 'סיימתי! ⭐')));
+        h('button.btn.primary', { onclick: () => { if (i < items.length - 1) { i++; show(); } else if (rule) { stop(); showRule(); } else { stop(); onDone(3); } } }, i < items.length - 1 || rule ? 'הבא ←' : 'סיימתי! ⭐')));
     trio(it.en, it.he);
   };
   show();
@@ -52,7 +62,7 @@ export function storyScreen(root, unit, { onDone, onExit }) {
   let showHe = true, i = 0;
   const chat = h('div.chat');
   const foot = h('div.story-foot');
-  root.append(h('div.topbar', {}, h('button.btn.round', { onclick: () => { stop(); onExit(); } }, '✕'),
+  root.append(h('div.topbar', {}, h('button.btn.round.exit', { onclick: () => { stop(); onExit(); } }, '✕'),
     h('div.title', {}, h('span.en', { dir: 'ltr' }, s.title), ' · ', s.he),
     h('button.btn.round', { title: 'תרגום', onclick: () => { showHe = !showHe; chat.classList.toggle('no-he', !showHe); } }, 'עב')), chat, foot);
   const AV = ['🧒', '👧', '👦', '🧑'];
@@ -89,16 +99,20 @@ export function storyScreen(root, unit, { onDone, onExit }) {
   const rolePlay = async right => {
     const me = names[1] || names[0], lines = s.lines.filter(l => l[0] === me).slice(0, 3);
     foot.innerHTML = '';
-    foot.append(h('div.qbox', {}, h('div.ask', {}, `🎭 עכשיו אתה ${me}! תגיד את המשפטים שלו`),
-      h('div.row', {}, h('button.btn.primary', { onclick: async () => {
-        let said = 0;
-        for (const l of lines) {
-          const host = h('div'); foot.innerHTML = ''; foot.append(host);
-          const r = await runChallenge(host, { kind: 'speak', item: { en: l[1], he: l[2], sent: true } });
-          if (r.ok) said++;
-        }
-        end(right, said);
-      } }, 'יאללה! 🎤'), h('button.btn.ghost', { onclick: () => end(right, 0) }, 'דלג'))));
+    const speakAll = async (list, kind) => {
+      let said = 0;
+      for (const l of list) {
+        const host = h('div'); foot.innerHTML = ''; foot.append(host);
+        const r = await runChallenge(host, { kind, item: { en: l[1], he: l[2], sent: true } });
+        if (r.ok) said++;
+      }
+      end(right, Math.round(said / list.length * 3));
+    };
+    foot.append(h('div.qbox', {}, h('div.ask', {}, 'ועכשיו – אתה מדבר!'),
+      h('div.row', {},
+        h('button.btn.primary', { onclick: () => speakAll(lines, 'speak') }, `🎭 אני ${me}`),
+        h('button.btn.review', { onclick: () => speakAll(s.lines.slice(0, 8), 'read') }, '📖 קורא את הסיפור בקול'),
+        h('button.btn.ghost', { onclick: () => end(right, 0) }, 'דלג'))));
   };
   const end = (right, said) => {
     const stars = Math.max(1, right) + (said >= 2 && right < 3 ? 1 : 0);
@@ -107,55 +121,105 @@ export function storyScreen(root, unit, { onDone, onExit }) {
   next();
 }
 
-// ---------- boss battle
-const BOSSES = { grass: ['🐲', 'Dragon Dino'], desert: ['🦂', 'King Scorpion'], snow: ['🐻‍❄️', 'Ice Bear'], cave: ['🦇', 'Bat Boss'], sky: ['🌩️', 'Storm Cloud'], castle: ['🧌', 'Big Troll'] };
-export function bossScreen(root, unit, items, { onDone, onExit, hard = false }) {
-  const [bem, bname] = BOSSES[unit.theme] || BOSSES.grass;
-  const words = items.filter(x => !x.sent), sents = items.filter(x => x.sent);
-  const rounds = shuffle([...sample(words, 4).map((it, k) => ({ it, kind: kindFor(it, 'boss', k) })),
-    ...sample(sents.filter(s => s.en.split(' ').length <= 7), 3).map((it, k) => ({ it, kind: kindFor(it, 'boss', k, hard) })),
-    ...sample(sents.filter(s => s.en.split(' ').length <= 5), 1).map(it => ({ it, kind: 'speak' }))]);
-  const total = rounds.length, base = [...rounds];
-  let hp = total, hearts = 3, r = 0, perfect = 0;
-  const cv = h('canvas.boss-hero', { width: 120, height: 150 });
-  const bossEl = h('div.boss', {}, bem);
-  const hpBar = h('div.hp', {}, h('i'));
-  const heartsEl = h('div.hearts');
-  const panel = h('div.boss-panel');
-  root.append(h('div.topbar', {}, h('button.btn.round', { onclick: () => { stop(); onExit(); } }, '✕'), h('div.title', {}, '👑 ', h('span.en', { dir: 'ltr' }, bname)), heartsEl),
-    h('div.arena.theme-' + unit.theme, {}, h('div.fighter', {}, cv), h('div.vs', {}, 'VS'), h('div.fighter', {}, bossEl, hpBar)), panel);
-  const look = st().look;
-  const drawMe = (pose = 0) => { const c = cv.getContext('2d'); c.clearRect(0, 0, 120, 150); drawHero(c, 60, 140, { look, scale: 2, frame: pose, air: pose > 0 }); };
-  const upd = () => { hpBar.firstChild.style.width = (hp / total * 100) + '%'; heartsEl.textContent = '❤️'.repeat(hearts) + '🤍'.repeat(3 - hearts); };
-  const shot = async () => {
-    const star = h('div.shot', {}, '⭐'); root.querySelector('.arena').append(star);
-    drawMe(5); await wait(450); star.remove(); drawMe(0);
-    bossEl.classList.add('hit'); sfx('hit'); await wait(450); bossEl.classList.remove('hit');
-  };
-  const attack = async () => {
-    bossEl.classList.add('attack'); await wait(350); sfx('hurt');
-    root.querySelector('.arena').classList.add('shake'); await wait(400);
-    bossEl.classList.remove('attack'); root.querySelector('.arena').classList.remove('shake');
-  };
-  const play = async () => {
-    upd(); drawMe();
-    while (r < rounds.length) {
-      const { it, kind } = rounds[r];
-      const res = await runChallenge(panel, { kind, item: it, pool: items });
-      if (res.ok) { perfect++; addXp(3); hp--; upd(); await shot(); r++; }
-      else {
-        await attack(); hearts--; upd();
-        if (hearts <= 0) {
-          panel.innerHTML = '';
-          panel.append(h('div.chal', {}, h('div.big-emoji.huge', {}, '😵'), h('div.ask', {}, 'אופס! הבוס ניצח הפעם'), h('button.btn.primary', { onclick: () => { hearts = 3; hp = total; r = 0; perfect = 0; rounds.splice(0, rounds.length, ...base); play(); } }, 'עוד פעם! 💪')));
-          return;
-        }
-        rounds.push(rounds[r]); r++;          // the same question comes back at the end of the battle
-      }
+// ---------- grammar tracks: rule card, unseen reading, test
+// an option like "no punctuation" fills the blank with nothing
+export const fillGap = (g, o = g.options[g.a]) => g.s.replace('___', /^no punctuation$/i.test(o) ? '' : o);
+export const gapItem = g => ({ en: fillGap(g), he: g.he || '', sent: true, gap: g, why: g.why });
+export const trItem = t => ({ en: t.a, he: t.he || '', sent: true, tr: t });
+
+export function ruleScreen(root, unit, { onDone, onExit }) {
+  const g = unit.grammar;
+  const body = h('div.learn');
+  root.append(h('div.topbar', {}, h('button.btn.round.exit', { onclick: () => { stop(); onExit(); } }, '✕'), h('div.title', {}, '📘 ', h('span.en', { dir: 'ltr' }, unit.title))), body);
+  body.append(
+    h('div.card.rule', {},
+      h('div.ask', {}, `כיתה ${unit.grade} · ${unit.level}`),
+      h('div.card-en.rule-title', { dir: 'ltr' }, g.rule),
+      h('div.rule-he', {}, g.he)),
+    h('div.examples', {}, g.examples.map(([e, hh]) => h('button.example', { onclick: () => trio(e, hh) }, h('span.en', { dir: 'ltr' }, '🔊 ' + e), h('small', {}, hh)))),
+    h('button.btn.primary.wide', { onclick: quick }, 'בוא נבדוק שהבנתי ←'));
+  async function quick() {
+    stop();
+    const qs = unit.gaps.slice(0, 3).map(gapItem);
+    let right = 0;
+    for (const [k, it] of qs.entries()) {
+      body.innerHTML = '';
+      body.append(h('div.progress', {}, h('i', { style: { width: (k / qs.length * 100) + '%' } })));
+      const host = h('div'); body.append(host);
+      const r = await runChallenge(host, { kind: 'gap', item: it });
+      if (r.ok) right++;
     }
-    bossEl.classList.add('dead'); sfx('win'); confetti();
-    await wait(900);
-    onDone(hearts, perfect * 3);
-  };
-  play();
+    onDone(right === 3 ? 3 : right === 2 ? 2 : 1, right * 3);
+  }
+}
+
+export function readingScreen(root, unit, { onDone, onExit }) {
+  const R = unit.reading;
+  const gloss = new Map(unit.words.map(([e, hh]) => [e.toLowerCase(), hh]));
+  const tip = h('div.gloss-tip.hidden');
+  // match the unit's words also when inflected (discoveries → discovery, noticed → notice, saving → save)
+  const find = w => [w, w.replace(/ies$/, 'y'), w.replace(/es$/, ''), w.replace(/s$/, ''), w.replace(/ied$/, 'y'), w.replace(/ed$/, ''), w.replace(/d$/, ''), w.replace(/ing$/, ''), w.replace(/ing$/, 'e'), w.replace(/ly$/, '')].find(k => gloss.has(k));
+  const words = R.text.split(/(\s+)/).map(tok => {
+    const key = find(tok.toLowerCase().replace(/[^a-z'-]/g, ''));
+    return key ? h('button.gloss', { onclick: () => { tip.textContent = `${key} = ${gloss.get(key)}`; tip.classList.remove('hidden'); say(key, 'en'); } }, tok) : tok;
+  });
+  const foot = h('div.story-foot');
+  root.append(h('div.topbar', {}, h('button.btn.round.exit', { onclick: () => { stop(); onExit(); } }, '✕'), h('div.title', {}, '📰 ', h('span.en', { dir: 'ltr' }, R.title), ' · ', R.he)),
+    h('div.paper', { dir: 'ltr' }, h('h3', {}, R.title), h('p', {}, words)), tip,
+    h('div.sound-row', {}, h('button.btn', { onclick: () => say(R.text, 'en') }, '🔊 הקרא לי'), h('button.btn', { onclick: () => say(R.text, 'en', { rate: 0.8 }) }, '🐢 לאט')),
+    h('p.note', {}, 'קרא לבד קודם. מילים מסומנות – לחץ לתרגום.'), foot);
+  foot.append(h('button.btn.primary.wide', { onclick: questions }, 'לשאלות ←'));
+  async function questions() {
+    stop(); let right = 0;
+    for (const [k, q] of R.questions.entries()) {
+      const box = h('div.qbox'); foot.innerHTML = ''; foot.append(box);
+      box.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      const ok = await new Promise(res => {
+        let done = false;
+        box.append(h('div.ask', {}, `שאלה ${k + 1}/${R.questions.length}`),
+          h('div.prompt-en.sent', { dir: 'ltr' }, q.q), h('div.sub-he', {}, q.he),
+          h('div.options', {}, q.options.map((o, j) => { const b = h('button.opt', { dir: 'ltr', onclick: () => {
+            if (done) return; done = true;
+            if (j === q.a) { b.classList.add('right'); sfx('good'); setTimeout(() => res(true), 900); }
+            else { b.classList.add('wrong'); sfx('bad'); box.querySelectorAll('.opt')[q.a].classList.add('right'); setTimeout(() => res(false), 1900); }
+          } }, o); return b; })));
+      });
+      if (ok) right++;
+    }
+    const n = R.questions.length;
+    onDone(right >= n ? 3 : right >= n - 1 ? 2 : 1, right * 3);
+  }
+}
+
+export const gradeWord = sc => sc >= 95 ? 'מצוין' : sc >= 85 ? 'טוב מאוד' : sc >= 75 ? 'טוב' : sc >= 65 ? 'כמעט טוב' : sc >= 55 ? 'מספיק' : 'עוד לא – כדאי לחזור על הכלל';
+export function testScreen(root, unit, pool, { onDone, onExit, pick }) {
+  const qs = [
+    ...pick(unit.gaps.slice(3), 6).map(g => ({ kind: 'gap', item: gapItem(g) })),
+    ...pick(unit.transforms, 3).map(t => ({ kind: 'transform', item: trItem(t) })),
+    ...pick(unit.words, 3).map(([e, hh, em], k) => ({ kind: k % 2 ? 'he-en' : 'en-he', item: { en: e, he: hh, em, sent: false } })),
+  ];
+  const body = h('div.learn');
+  root.append(h('div.topbar', {}, h('button.btn.round.exit', { onclick: () => { stop(); onExit(); } }, '✕'), h('div.title', {}, '📝 מבחן · ', h('span.en', { dir: 'ltr' }, unit.title)), h('div.count')), body);
+  const count = root.querySelector('.count');
+  (async () => {
+    const wrong = []; let right = 0;
+    for (const [k, q] of qs.entries()) {
+      count.textContent = `${k + 1}/${qs.length}`;
+      body.innerHTML = '';
+      body.append(h('div.progress', {}, h('i', { style: { width: (k / qs.length * 100) + '%' } })));
+      const host = h('div'); body.append(host);
+      const r = await runChallenge(host, { ...q, pool });
+      if (r.ok) right++; else wrong.push(q.item);
+    }
+    const score = Math.round(right / qs.length * 100);
+    const stars = score >= 90 ? 3 : score >= 75 ? 2 : score >= 55 ? 1 : 0;
+    body.innerHTML = '';
+    body.append(h('div.card.test-result', {},
+      h('div.score' + (stars ? '' : '.low'), {}, score),
+      h('div.ask', {}, gradeWord(score)),
+      h('p.note', {}, stars ? 'עברת את המבחן! הבוס מחכה 👑' : 'צריך 55 לפחות כדי לעבור. עבור שוב על הכלל ונסה שוב 💪')),
+      wrong.length ? h('div.qbox', {}, h('div.ask', {}, 'לתיקון:'), wrong.map(it => h('div.fix-row', {}, h('b', { dir: 'ltr' }, it.en), h('small', {}, it.why || it.he)))) : null,
+      h('button.btn.primary.wide', { onclick: () => onDone(stars, right * 3, score) }, 'המשך ←'));
+    sfx(stars ? 'win' : 'bad');
+  })();
 }
