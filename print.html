@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>English Quest Worksheets</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/print.css">
+</head>
+<body>
+<header class="controls no-print">
+  <a href="./" class="back">→ חזרה למשחק</a>
+  <h1>🖨️ דפי עבודה להדפסה</h1>
+  <p>בחרו עולם וסוגי דפים, ולחצו "הדפסה". כל עולם מתאים למה שלומדים במשחק באותו עולם. אפשר לערבב מחדש לקבלת דפים אחרים.</p>
+  <div class="ctl-row">
+    <label>עולם: <select id="unit"></select></label>
+    <button id="shuffle" type="button">🔀 ערבוב מחדש</button>
+    <button id="print" type="button" class="primary">🖨️ הדפסה</button>
+  </div>
+  <div id="kinds" class="kinds"></div>
+  <label class="key"><input type="checkbox" id="answers"> לצרף דף תשובות להורים</label>
+</header>
+<main id="sheets"></main>
+<script type="module" src="js/print.js"></script>
+</body>
+</html>
