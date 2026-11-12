@@ -111,49 +111,77 @@ const SEASONS = [{ at: 0, he: 'עונה 1 · יסודות', en: 'Season 1', sub:
   { at: 24, he: 'עונה 2 · מדברים שוטף', en: 'Season 2', sub: 'זמנים, השוואות, סיפורים ושיחות ארוכות + כללי קריאה' }];
 function home() {
   clear(); document.body.className = 'map-bg';
-  const s = S.st(), cur = S.currentUnit(UNITS), dueN = due().length;
-  const path = h('div.worlds');
+  const s = S.st(), cur = S.currentUnit(UNITS), dueN = due().length, cu = UNITS[cur];
+  const T = TRACKS[s.track] || TRACKS.kids;
+  const starsOf = u => stagesFor(u).map((_, k) => S.stageStars(u.id, k));
+  // stage dots: empty / done / perfect
+  const dots = u => h('span.sdots', {}, starsOf(u).map(st => h('i' + (st === 3 ? '.gold' : st ? '.on' : ''))));
+
+  // ---- continue card
+  const cst = stagesFor(cu), nextK = Math.max(0, starsOf(cu).findIndex(x => !x));
+  const hero = h('section.continue.theme-' + cu.theme, {},
+    h('div.c-icon', {}, h('span', {}, cu.em)),
+    h('div.c-body', {},
+      h('small', {}, `עולם ${cur + 1}${cu.grade ? ' · כיתה ' + cu.grade : ''}`),
+      h('b.en', { dir: 'ltr' }, cu.title),
+      h('span.c-next', {}, 'הבא: ', cst[nextK].em, ' ', cst[nextK].name),
+      dots(cu)),
+    h('button.btn.primary.big.c-play', { onclick: () => go(S.stageUnlocked(UNITS, cur, nextK) ? `#/play/${cur}/${nextK}` : '#/unit/' + cur) }, '▶ ', 'שחק'));
+
+  // ---- tiles
+  const tile = (em, label, onclick, extra = '') => h('button.tile-btn' + extra, { onclick }, h('span.t-em', {}, em), h('span.t-label', {}, label));
+  const badgeN = (s.badges || []).length;
+  const tiles = h('nav.tiles', {},
+    dueN ? tile('🔁', `חזרה יומית · ${Math.min(dueN, 12)}`, () => go('#/review'), '.hot') : null,
+    tile('🏆', 'טבלת המשפחה', () => go('#/leaders')),
+    tile('🏅', `תגים ${badgeN}/${BADGES.length}`, () => go('#/badges')),
+    neon() ? null : tile('🛒', 'חנות', () => go('#/shop')),
+    tile('🖨️', 'דפי עבודה', () => { location.href = 'print.html'; }),
+    tile('🏫', 'מה לומדים בכיתה', () => go('#/school')),
+    tile('👨‍👩‍👦', 'הורים', () => go('#/parent')));
+
+  // ---- the path: icon nodes on a winding left / center / right trail
+  const path = h('div.path');
+  const LANE = [0, 1, 2, 1];
   UNITS.forEach((u, i) => {
     const season = s.track === 'kids' ? SEASONS.find(x => x.at === i) : null;
-    if (season && i < UNITS.length) path.append(h('div.season' + (S.unitUnlocked(UNITS, i) ? '' : '.locked'), {}, h('b', {}, season.he), h('span.en', { dir: 'ltr' }, season.en), h('small', {}, season.sub)));
-    const open = S.unitUnlocked(UNITS, i), stages = stagesFor(u), stars = stages.reduce((a, _, k) => a + S.stageStars(u.id, k), 0);
-    const off = Math.sin(i * 1.3) * 28;
-    const node = h('button.world.theme-' + u.theme + (open ? '' : '.locked') + (i === cur ? '.current' : '') + (S.unitDone(u) ? '.done' : ''),
-      { onclick: () => open ? go('#/unit/' + i) : toast('🔒 קודם מסיימים את העולם הקודם'), style: { '--off': off + '%' } },
-      h('span.num', {}, i + 1), h('span.wem', {}, open ? u.em : '🔒'),
-      h('span.wname', {}, h('span.en', { dir: 'ltr' }, u.title), h('small', {}, u.he)),
-      open ? h('span.wstars', {}, `⭐ ${stars}/${stages.length * 3}`) : null,
-      i === cur ? h('span.here', {}, heroCanvas(34)) : null);
+    if (season) path.append(h('div.season' + (S.unitUnlocked(UNITS, i) ? '' : '.locked'), {}, h('b', {}, season.he), h('span.en', { dir: 'ltr' }, season.en), h('small', {}, season.sub)));
+    const open = S.unitUnlocked(UNITS, i), st = starsOf(u), got = st.reduce((a, b) => a + b, 0), max = st.length * 3;
+    const state = !open ? '.locked' : S.unitDone(u) ? '.done' : i === cur ? '.current' : '';
     const sc = SCENERY[u.theme] || SCENERY.grass;
-    path.append(h('div.wrow', {}, node, h('span.scenery', { style: { '--side': off > 0 ? 'auto' : '4%', '--other': off > 0 ? '4%' : 'auto' } }, sc[i % sc.length])));
+    path.append(h('div.node-row.lane' + LANE[i % 4], {},
+      h('button.node.theme-' + u.theme + state, { onclick: () => open ? go('#/unit/' + i) : toast('🔒 קודם מסיימים את העולם הקודם'), title: u.title },
+        h('span.ring', { style: { '--pct': (got / max * 100) + '%' } }, h('span.n-em', {}, open ? u.em : '🔒'), state === '.done' ? h('span.n-check', {}, '✓') : null),
+        i === cur ? h('span.n-here', {}, 'אתה כאן') : null,
+        h('span.n-card', {},
+          h('span.n-num', {}, `עולם ${i + 1}${u.grade ? ' · ' + u.grade : ''}`),
+          h('b.en', { dir: 'ltr' }, u.title),
+          h('small', {}, u.he),
+          open ? dots(u) : null)),
+      h('span.scenery', {}, sc[i % sc.length])));
   });
-  const badgeN = (s.badges || []).length;
+
   app.append(
-    h('div.home-top', {},
-      h('button.me', { onclick: () => go('#/players'), title: 'החלפת שחקן' }, heroCanvas(48), h('div', {}, h('b', {}, 'היי ' + (s.name || '') + '! 🔄'), h('small', {}, `${TRACKS[s.track]?.em || ''} ${TRACKS[s.track]?.name || ''} · ${S.mastered()} דברים שאתה יודע`))),
+    h('header.home-top', {},
+      h('button.me', { onclick: () => go('#/players'), title: 'החלפת שחקן' }, heroCanvas(46),
+        h('div', {}, h('b', {}, s.name || ''), h('small', {}, `${T.em} ${T.name} · החלף שחקן`))),
       statsBar()),
-    h('div.home-actions', {},
-      h('button.btn.primary.big', { onclick: () => go('#/unit/' + cur) }, '▶ ', 'ממשיכים לשחק'),
-      dueN ? h('button.btn.review', { onclick: () => go('#/review') }, `🔁 חזרה יומית (${Math.min(dueN, 12)})`) : null,
-      neon() ? null : h('button.btn', { onclick: () => go('#/shop') }, '🛒 חנות'),
-      h('button.btn', { onclick: () => go('#/leaders') }, '🏆 טבלת המשפחה'),
-      h('button.btn', { onclick: () => go('#/badges') }, `🏅 תגים ${badgeN}/${BADGES.length}`),
-      h('a.btn', { href: 'print.html', style: { textDecoration: 'none' } }, '🖨️ דפי עבודה'),
-      h('button.btn', { onclick: () => go('#/school') }, '🏫 מה לומדים בכיתה'),
-      h('button.btn.ghost', { onclick: () => go('#/parent') }, '👨‍👩‍👦 הורים')),
-    path);
+    hero, tiles, path);
+
   const drawTrail = () => {
     path.querySelector('svg.trail')?.remove();
-    const nodes = [...path.querySelectorAll('.world')], box = path.getBoundingClientRect();
-    if (!nodes.length || !box.width) return;
-    const pts = nodes.map(n => { const r = n.getBoundingClientRect(); return [r.left + r.width / 2 - box.left, r.top + r.height / 2 - box.top]; });
-    const d = pts.slice(0, -1).map(([x, y], k) => { const [x2, y2] = pts[k + 1], my = (y + y2) / 2; return `M${x} ${y} C${x} ${my} ${x2} ${my} ${x2} ${y2}`; });
+    const rings = [...path.querySelectorAll('.ring')], box = path.getBoundingClientRect();
+    if (rings.length < 2 || !box.width) return;
+    const pts = rings.map(n => { const r = n.getBoundingClientRect(); return [r.left + r.width / 2 - box.left, r.top + r.height / 2 - box.top]; });
     const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'trail'); svg.setAttribute('width', box.width); svg.setAttribute('height', path.scrollHeight);
-    d.forEach((seg, k) => { const pth = document.createElementNS(NS, 'path'); pth.setAttribute('d', seg); pth.setAttribute('class', k < cur ? 'walked' : 'ahead'); svg.append(pth); });
+    pts.slice(0, -1).forEach(([x, y], k) => {
+      const [x2, y2] = pts[k + 1], my = (y + y2) / 2, pth = document.createElementNS(NS, 'path');
+      pth.setAttribute('d', `M${x} ${y} C${x} ${my} ${x2} ${my} ${x2} ${y2}`); pth.setAttribute('class', k < cur ? 'walked' : 'ahead'); svg.append(pth);
+    });
     path.prepend(svg);
   };
-  requestAnimationFrame(() => { drawTrail(); path.querySelector('.current')?.scrollIntoView({ block: 'center' }); });
+  requestAnimationFrame(() => { drawTrail(); if (cur > 1) path.querySelector('.node.current')?.scrollIntoView({ block: 'center' }); });
   const onR = () => { if (!document.body.contains(path)) return removeEventListener('resize', onR); drawTrail(); };
   addEventListener('resize', onR);
   announceBadges();
