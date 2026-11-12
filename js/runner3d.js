@@ -62,7 +62,8 @@ export async function runRunner3D(host, questions, { theme = 'grass', speed = 12
   }
   return new Promise(resolve => {
     const TH = THEMES3D[theme] || THEMES3D.grass;
-    const low = (navigator.hardwareConcurrency || 4) <= 4 || Math.min(screen.width, screen.height) < 380;
+    let low = (navigator.hardwareConcurrency || 4) <= 4 || Math.min(screen.width, screen.height) < 380;
+    let pr = Math.min(low ? 1 : 1.75, devicePixelRatio || 1), fpsT = 0, fpsN = 0;
 
     // ---------- DOM: canvas + HUD
     const cv = h('canvas.r3-canvas');
@@ -82,7 +83,7 @@ export async function runRunner3D(host, questions, { theme = 'grass', speed = 12
 
     // ---------- renderer, scene, camera
     const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: !low, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(low ? 1 : 1.75, devicePixelRatio || 1));
+    renderer.setPixelRatio(pr);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
     const scene = new THREE.Scene();
@@ -386,7 +387,17 @@ export async function runRunner3D(host, questions, { theme = 'grass', speed = 12
     let last = performance.now(), raf = 0, shake = 0;
     const camTarget = new THREE.Vector3();
     function loop(now) {
-      let dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const realDt = (now - last) / 1000;
+      let dt = Math.min(0.05, realDt); last = now;
+      // adaptive quality: every 2 s of visible running, drop resolution and effects if the frame rate is low
+      if (started && document.visibilityState === 'visible' && realDt < 0.5) {
+        fpsT += realDt; fpsN++;
+        if (fpsT > 2) {
+          const fps = fpsN / fpsT; fpsT = 0; fpsN = 0;
+          if (fps < 40 && pr > 0.6) { pr = Math.max(0.6, pr * 0.75); renderer.setPixelRatio(pr); resize(); low = true; }
+          else if (fps > 57 && pr < Math.min(1.75, devicePixelRatio || 1) && !low) { pr = Math.min(1.75, pr * 1.15); renderer.setPixelRatio(pr); resize(); }
+        }
+      }
       if (hitStop > 0) { hitStop -= dt; dt *= 0.15; }
       t += dt;
       if (!finished) step(dt);
