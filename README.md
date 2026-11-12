@@ -29,7 +29,16 @@ A cartoon platformer can feel childish to older kids, so the middle-school and h
 - **Arcade:** the platformer is still there as an optional "🕹️ ארקייד (בונוס)" button on each world. It isn't needed to progress.
 
 ### 🏃‍♂️ 3D run (bonus mode, every track)
-A 3D lane runner (Three.js, loaded only when the mode opens). The question appears at the top of the screen, and Beri runs through the gate with the right answer while jumping bars, dodging crates and collecting coins. Kids get words, pictures and listening; the older tracks get fill-the-gap grammar. Controls: arrow keys and space, or swipe and tap on a phone. Points count toward the family leaderboard. It needs internet the first time, to load the 3D library.
+A 3D lane runner (Three.js, loaded only when the mode opens): run through the portal with the right answer.
+- **Look:** a curved world, cel-shaded low-poly scenery for each world's theme, a sky dome with sun or stars, particles, speed lines and a camera that widens at speed.
+- **Moves:** jump bars, slide under beams, switch lanes around crates and trains.
+- **Power-ups:** 🧲 magnet, 🛡️ shield, ⚡ turbo, ✖2 double points.
+- **Combos:** combos up to x4, and 🔥 FEVER (double points) after 6 right answers in a row.
+- **Music:** a procedural beat that speeds up with you.
+- **Two modes:** a 10-gate run in each world, and an **∞ endless run** that mixes every opened world and keeps a personal and a family record.
+- **Controls:** arrows, space and ↓, or swipes on a phone.
+
+It needs internet the first time, to load the 3D library.
 
 **Family leaderboard (🏆):** weekly points for every player on the device, reset each Sunday.
 

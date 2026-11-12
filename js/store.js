@@ -142,6 +142,6 @@ export function leaderboard() {
   return P.list.map(p => {
     let data = {}; try { data = JSON.parse(localStorage.getItem(keyFor(p.id)) || '{}'); } catch (e) { }
     const week = keys.reduce((a, k) => a + (data.days?.[k]?.xp || 0), 0);
-    return { id: p.id, name: p.name, track: p.track, week, points: data.points || 0, me: p.id === P.cur };
+    return { id: p.id, name: p.name, track: p.track, week, points: data.points || 0, best3d: data.best3d || 0, me: p.id === P.cur };
   }).sort((a, b) => b.week - a.week);
 }

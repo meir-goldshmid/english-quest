@@ -133,6 +133,7 @@ function home() {
   const badgeN = (s.badges || []).length;
   const tiles = h('nav.tiles', {},
     dueN ? tile('🔁', `חזרה יומית · ${Math.min(dueN, 12)}`, () => go('#/review'), '.hot') : null,
+    tile('🏃‍♂️', 'ריצה אינסופית 3D', () => go('#/endless'), '.run'),
     tile('🏆', 'טבלת המשפחה', () => go('#/leaders')),
     tile('🏅', `תגים ${badgeN}/${BADGES.length}`, () => go('#/badges')),
     neon() ? null : tile('🛒', 'חנות', () => go('#/shop')),
@@ -349,9 +350,28 @@ async function run3d(i) {
   const { runRunner3D } = await import('./runner3d.js');
   const qs = runnerQuestions(u, i);
   const speed = u.track === 'teen' ? 15 : u.track === 'middle' ? 13 : 11;
-  const r = await runRunner3D(app, qs, { theme: u.theme, speed, look: S.st().look, neon: neon(), onExit: () => go('#/unit/' + i), onAnswer: (q, ok) => q.item && S.grade(q.item.en, ok) });
+  const s = S.st();
+  const r = await runRunner3D(app, qs, { theme: u.theme, speed, look: s.look, neon: neon(), music: s.settings.music, best: s.best3d || 0, onExit: () => go('#/unit/' + i), onAnswer: (q, ok) => q.item && S.grade(q.item.en, ok) });
   if (!document.body.classList.contains('run3d-bg')) return;
   roundResult(r, { again: () => route(), back: () => go('#/unit/' + i), note: 'מצב בונוס – הנקודות נכנסות לטבלת המשפחה.' });
+}
+// endless 3D run: questions from every opened world, faster and faster, until the hearts run out
+async function endlessRun() {
+  clear(); document.body.className = 'run3d-bg';
+  const { runRunner3D } = await import('./runner3d.js');
+  const open = UNITS.map((_, i) => i).filter(i => S.unitUnlocked(UNITS, i));
+  const qs = shuffle(open.flatMap(i => runnerQuestions(UNITS[i], i).slice(0, open.length > 6 ? 4 : 10)));
+  const s = S.st(), cu = UNITS[S.currentUnit(UNITS)];
+  const speed = s.track === 'teen' ? 15 : s.track === 'middle' ? 13 : 11;
+  const fam = Math.max(0, ...S.leaderboard().map(x => x.best3d || 0));
+  const r = await runRunner3D(app, qs, { theme: cu.theme, speed, look: s.look, neon: neon(), endless: true, music: s.settings.music, best: Math.max(s.best3d || 0, fam), onExit: () => go('#/'), onAnswer: (q, ok) => q.item && S.grade(q.item.en, ok) });
+  if (!document.body.classList.contains('run3d-bg')) return;
+  const mine = s.best3d || 0, record = r.score > mine;
+  if (record) { s.best3d = r.score; S.save(); }
+  const familyRecord = r.score > fam && S.profiles().length > 1;
+  roundResult(r, { again: () => route(), back: () => go('#/'), better: false,
+    note: `${r.distance.toLocaleString()} מטר · ${r.right} תשובות נכונות` + (familyRecord ? ' · 👑 שיא משפחתי חדש!' : record ? ' · 🏆 שיא אישי חדש!' : ` · השיא שלך: ${mine.toLocaleString()}`) });
+  if (record) { confetti(120); sfx('win'); }
 }
 function roundResult(r, { stars = null, better = false, again, back, note = '' }) {
   S.addPoints(r.score); S.addXp(Math.round(r.score / 20));
@@ -399,7 +419,10 @@ function leaders() {
       const t = TRACKS[r.track] || TRACKS.kids, rk = S.rankFor(r.points);
       return h('div.leader' + (r.me ? '.me' : ''), {}, h('span.lpos', {}, medals[n] || n + 1), h('div.lname', {}, h('b', {}, r.name), h('small', {}, `${t.em} ${t.name} · ${rk.em} ${rk.name}`)), h('b.lpts', {}, r.week.toLocaleString()));
     })),
-    rows.length < 2 ? h('p.note', {}, 'רוצים תחרות? הוסיפו עוד שחקן (אח, אחות, הורה...) במסך "מי משחק?".') : null);
+    h('h3.lead-h', {}, '🏃‍♂️ שיאי הריצה האינסופית'),
+    h('div.leaders', {}, [...rows].sort((a, b) => (b.best3d || 0) - (a.best3d || 0)).map((r, n) => h('div.leader' + (r.me ? '.me' : ''), {}, h('span.lpos', {}, n ? n + 1 : '👑'), h('div.lname', {}, h('b', {}, r.name)), h('b.lpts', {}, (r.best3d || 0).toLocaleString())))),
+    h('button.btn.primary.big.wide', { onclick: () => go('#/endless') }, '🏃‍♂️ נסה לשבור את השיא!'),
+    rows.length < 2 ? h('p.note', {}, 'רוצים תחרות? הוסיפו עוד שחקן (אח, אחות, הורה...) במסך "מי משחק?".') : '');
 }
 
 function wordEvents(list, n, mode) {
@@ -595,6 +618,7 @@ function route() {
   if (r === 'leaders') return leaders();
   if (r === 'arcade') return arcade(+a);
   if (r === 'run3d') return run3d(+a);
+  if (r === 'endless') return endlessRun();
   if (r === 'parent') return parent();
   home();
 }
