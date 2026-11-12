@@ -17,7 +17,18 @@ The in-game **🏫 מה לומדים בכיתה** page shows each Israeli school
 ## Stages in each world
 **Kids:** 📖 words → 🏃 run (word blocks, ABC spelling gates) → 💬 sentences → 🗣️ speaking run (🎤 doors, read-aloud doors) → 📜 story (questions, then role play or reading the story aloud) → 👑 boss.
 
-**Middle / High school:** 📘 grammar rule with a quick check → 📖 vocabulary → 🏃 grammar run (fill-the-gap and transform blocks) → 📰 unseen reading (tap a word to translate it) → 🗣️ speaking run → 📝 test (score out of 100; 55 to pass) → 👑 boss.
+**Middle / High school:** 📘 grammar rule with a quick check → 📖 vocabulary → ⚡ Grammar Rush → 📰 unseen reading (tap a word to translate it) → 🎙️ Speak Up → 📝 test (score out of 100; 55 to pass) → 👑 Boss Rush.
+
+### Challenge mode for 12+
+A cartoon platformer can feel childish to older kids, so the middle-school and high-school tracks are built differently:
+- **Rush rounds:** each question is timed, and correct answers in a row build a combo. Points per answer = 100 × combo (x1 to x4) + a speed bonus.
+- **End of a round:** a medal by accuracy (Bronze, then Silver at 70%, Gold at 85%, Diamond at 95%) and stars (50% to pass).
+- **Boss Rush:** a missed question comes back until the boss's health reaches zero. It mixes in grammar from earlier worlds.
+- **Look:** a dark neon theme, the Rubik font and an initials avatar. There is no outfit shop.
+- **Ranks:** lifetime points earn Bronze, Silver (1,500), Gold (5,000), Platinum (12,000) and Diamond (25,000).
+- **Arcade:** the platformer is still there as an optional "🕹️ ארקייד (בונוס)" button on each world. It isn't needed to progress.
+
+**Family leaderboard (🏆):** weekly points for every player on the device, reset each Sunday.
 
 ## The game
 - **Platformer:** coyote time and jump buffering, moving platforms and lifts, 4 enemy kinds (walker, hopper, flyer, and spiky, which can't be stomped), and power-ups from right answers: 👟 jump shoes, 🧲 coin magnet, 🛡️ shield, 🌟 star.
@@ -47,6 +58,7 @@ The 🎤 parts use the browser's Web Speech API (Chrome, Edge, Android, Safari o
 | `js/school.js` | The school-grade comparison |
 | `js/game.js`, `js/levels.js` | Platformer engine, level generator and boss arena. All art is drawn in code. |
 | `js/challenges.js` | All challenge types, including gap, transform and read-aloud |
+| `js/rush.js` | Challenge mode: timer, combo, points, medals, Boss Rush |
 | `js/screens.js` | Learn cards, story, grammar rule, reading and test |
 | `js/main.js` | Map, stages, players, review, shop, badges, parent area |
 | `js/store.js` | Players and progress in localStorage, one JSON blob per player |

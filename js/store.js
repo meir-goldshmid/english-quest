@@ -2,7 +2,7 @@
 const BASE = 'english-quest-v1', PKEY = 'english-quest-profiles';
 
 // Stages per track. Kids: words, run, sentences, speaking run, story, boss.
-// Grammar tracks (12+ / 14+): rule, words, grammar run, reading, speaking run, test, boss.
+// Grammar tracks (12+ / 14+): rule, words, timed grammar rush, reading, speaking round, test, boss rush (the platformer is an optional arcade).
 export const STAGES_KIDS = [
   { id: 'learn', em: '📖', name: 'לומדים מילים' },
   { id: 'run1', em: '🏃', name: 'שלב ריצה: מילים' },
@@ -14,16 +14,16 @@ export const STAGES_KIDS = [
 export const STAGES_G = [
   { id: 'rule', em: '📘', name: 'כלל הדקדוק' },
   { id: 'learn', em: '📖', name: 'אוצר מילים' },
-  { id: 'grun', em: '🏃', name: 'ריצת דקדוק' },
+  { id: 'rush', em: '⚡', name: 'Grammar Rush' },
   { id: 'reading', em: '📰', name: 'הבנת הנקרא' },
-  { id: 'run2', em: '🗣️', name: 'ריצת דיבור' },
+  { id: 'speak', em: '🎙️', name: 'Speak Up' },
   { id: 'test', em: '📝', name: 'מבחן' },
-  { id: 'boss', em: '👑', name: 'קרב בוס' },
+  { id: 'boss', em: '👑', name: 'Boss Rush' },
 ];
 export const stagesFor = u => (u && u.grammar ? STAGES_G : STAGES_KIDS);
 
 const DEF = () => ({
-  v: 1, name: '', track: 'kids', coins: 0,
+  v: 1, name: '', track: 'kids', coins: 0, points: 0,
   look: { hoodie: '#ff7a1a', cap: '#2463eb', hat: 'cap', extra: '' },
   owned: ['hoodie:#ff7a1a', 'cap:#2463eb', 'hat:cap'],
   stages: {},       // 'unitId:stageIdx' -> { stars, at, score? }
@@ -127,3 +127,21 @@ export const mastered = () => Object.values(S.items).filter(i => i.b >= 3).lengt
 export function reset() { const { name, track } = S; S = Object.assign(DEF(), { name, track }); save(); }
 export function exportJson() { return JSON.stringify(S); }
 export function importJson(txt) { const o = JSON.parse(txt); if (!o || o.v !== 1) throw new Error('bad file'); S = Object.assign(DEF(), o); save(); }
+
+// ---- points, ranks and the family leaderboard (weekly xp, Sunday to Saturday)
+export const RANKS = [
+  { min: 25000, em: '💎', name: 'Diamond' }, { min: 12000, em: '🏆', name: 'Platinum' }, { min: 5000, em: '🥇', name: 'Gold' },
+  { min: 1500, em: '🥈', name: 'Silver' }, { min: 0, em: '🥉', name: 'Bronze' },
+];
+export const rankFor = pts => RANKS.find(r => pts >= r.min);
+export const nextRank = pts => [...RANKS].reverse().find(r => r.min > pts) || null;
+export function addPoints(n) { S.points = (S.points || 0) + n; save(); }
+function weekKeys() { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return [...Array(7)].map((_, i) => { const x = new Date(d); x.setDate(d.getDate() + i); return today(x); }); }
+export function leaderboard() {
+  const keys = weekKeys();
+  return P.list.map(p => {
+    let data = {}; try { data = JSON.parse(localStorage.getItem(keyFor(p.id)) || '{}'); } catch (e) { }
+    const week = keys.reduce((a, k) => a + (data.days?.[k]?.xp || 0), 0);
+    return { id: p.id, name: p.name, track: p.track, week, points: data.points || 0, me: p.id === P.cur };
+  }).sort((a, b) => b.week - a.week);
+}

@@ -15,9 +15,9 @@ const KIDS = [
 ];
 
 export const TRACKS = {
-  kids: { id: 'kids', em: '🧒', name: 'צעירים', ages: 'גילאי 8–10', grades: 'כיתות ג׳–ה׳', level: 'Pre-A1 → A1', blurb: 'מתחילים מאפס: מילים, צלילים, משפטים ודיבור', units: KIDS },
-  middle: { id: 'middle', em: '🧑‍🎓', name: 'חטיבה', ages: 'גילאי 11–13', grades: 'כיתות ו׳–ח׳', level: 'A1 → A2', blurb: 'דקדוק בית הספר: רבים, זמנים, השוואות, סביל ועוד + מבחנים', units: [...UNITS_MA, ...UNITS_MB].map(u => ({ ...u, track: 'middle' })) },
-  teen: { id: 'teen', em: '🎓', name: 'תיכון ובגרות', ages: 'גילאי 14–16', grades: 'כיתות ט׳–י״א', level: 'A2 → B1/B2', blurb: 'זמנים מתקדמים, תנאי, דיבור עקיף, מילות קישור, אנסין בסגנון בגרות', units: [...UNITS_TA, ...UNITS_TB].map(u => ({ ...u, track: 'teen' })) },
+  kids: { id: 'kids', style: 'kids', em: '🧒', name: 'צעירים', ages: 'גילאי 8–10', grades: 'כיתות ג׳–ה׳', level: 'Pre-A1 → A1', blurb: 'מתחילים מאפס: מילים, צלילים, משפטים ודיבור', units: KIDS },
+  middle: { id: 'middle', style: 'neon', em: '🧑‍🎓', name: 'חטיבה', ages: 'גילאי 11–13', grades: 'כיתות ו׳–ח׳', level: 'A1 → A2', blurb: 'דקדוק בית הספר: רבים, זמנים, השוואות, סביל ועוד + מבחנים', units: [...UNITS_MA, ...UNITS_MB].map(u => ({ ...u, track: 'middle' })) },
+  teen: { id: 'teen', style: 'neon', em: '🎓', name: 'תיכון ובגרות', ages: 'גילאי 14–16', grades: 'כיתות ט׳–י״א', level: 'A2 → B1/B2', blurb: 'זמנים מתקדמים, תנאי, דיבור עקיף, מילות קישור, אנסין בסגנון בגרות', units: [...UNITS_TA, ...UNITS_TB].map(u => ({ ...u, track: 'teen' })) },
 };
 export const unitsFor = track => (TRACKS[track] || TRACKS.kids).units;
 // kept for tools that only need the kids course

@@ -37,6 +37,7 @@ export function runChallenge(host, ch) {
     let done = false;
     const finish = async (ok, { noGrade, silent } = {}) => {
       if (done) return; done = true;
+      ch.onAnswer?.(ok);                       // lets a timed round stop its clock at the click
       if (!noGrade) grade(item.en, ok);
       if (ok) {
         sfx('good');

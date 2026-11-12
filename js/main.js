@@ -7,6 +7,7 @@ import { loadManifests, say, trio, sfx, stop, music, stopMusic, unlockAudio } fr
 import { buildLevel, buildArena, hash } from './levels.js';
 import { Game, drawHero } from './game.js';
 import { runChallenge, kindFor } from './challenges.js';
+import { runRush } from './rush.js';
 import { learnCards, storyScreen, ruleScreen, readingScreen, testScreen, gapItem, trItem, gradeWord } from './screens.js';
 import { SCHOOL } from './school.js';
 import { BADGES, checkBadges } from './badges.js';
@@ -27,9 +28,11 @@ function setTrack() {
 const unitIdx = id => UNITS.findIndex(u => u.id === id);
 let game = null, timer = null;
 
+const neon = () => TRACKS[S.st().track]?.style === 'neon';
 function clear() {
   stop(); game?.destroy(); game = null;
   document.body.className = '';
+  document.documentElement.classList.toggle('neon', !!S.currentProfile() && neon());
   document.querySelectorAll('body > .modal-bg').forEach(m => m.remove());
   app.innerHTML = '';
 }
@@ -40,12 +43,17 @@ const due = () => items.flat().filter(it => S.isDue(it.en));
 function statsBar() {
   const s = S.st(), d = s.days[S.today()]?.xp || 0;
   const pct = Math.min(100, d / S.DAILY_GOAL * 100);
+  const rk = S.rankFor(s.points || 0);
   return h('div.stats', {},
-    h('span.pill', { title: 'מטבעות' }, '🪙 ', s.coins),
+    neon() ? h('span.pill.rank', { title: 'דרגה' }, rk.em, ' ', h('span', { dir: 'ltr' }, `${rk.name} · ${(s.points || 0).toLocaleString()} pts`)) : h('span.pill', { title: 'מטבעות' }, '🪙 ', s.coins),
     h('span.pill', { title: 'ימים ברצף' }, '🔥 ', S.streak()),
     h('span.pill.goal', { title: 'יעד יומי', style: { '--p': pct + '%' } }, pct >= 100 ? '✅ יעד היום' : `🎯 ${Math.round(pct)}%`));
 }
 function heroCanvas(size = 90) {
+  if (S.currentProfile() && neon()) {
+    const n = (S.st().name || '?').trim();
+    return h('div.avatar', { style: { width: size + 'px', height: size + 'px', fontSize: Math.round(size * 0.42) + 'px' } }, n.slice(0, 2).toUpperCase());
+  }
   const cv = h('canvas.hero-cv', { width: size, height: size * 1.3 });
   drawHero(cv.getContext('2d'), size / 2, size * 1.25, { look: S.st().look, scale: size / 60 });
   return cv;
@@ -127,7 +135,8 @@ function home() {
     h('div.home-actions', {},
       h('button.btn.primary.big', { onclick: () => go('#/unit/' + cur) }, '▶ ', 'ממשיכים לשחק'),
       dueN ? h('button.btn.review', { onclick: () => go('#/review') }, `🔁 חזרה יומית (${Math.min(dueN, 12)})`) : null,
-      h('button.btn', { onclick: () => go('#/shop') }, '🛒 חנות'),
+      neon() ? null : h('button.btn', { onclick: () => go('#/shop') }, '🛒 חנות'),
+      h('button.btn', { onclick: () => go('#/leaders') }, '🏆 טבלת המשפחה'),
       h('button.btn', { onclick: () => go('#/badges') }, `🏅 תגים ${badgeN}/${BADGES.length}`),
       h('a.btn', { href: 'print.html', style: { textDecoration: 'none' } }, '🖨️ דפי עבודה'),
       h('button.btn', { onclick: () => go('#/school') }, '🏫 מה לומדים בכיתה'),
@@ -175,7 +184,9 @@ function unitScreen(i) {
       h('span.sstars', {}, [0, 1, 2].map(n => h('i' + (n < stars ? '.on' : ''), {}, '★')))));
   });
   app.append(h('div.topbar', {}, h('button.btn.round.back', { onclick: () => go('#/') }, '→'), h('div.title', {}, u.em + ' ', h('span.en', { dir: 'ltr' }, u.title), ' · ', u.he), statsBar()),
-    h('div.unit-hero', {}, heroCanvas(80), h('div.unit-info', {}, h('div', {}, `עולם ${i + 1} מתוך ${UNITS.length}`), h('small', {}, `${u.words.length} מילים · ${u.sentences.length} משפטים · סיפור`))),
+    h('div.unit-hero', {}, heroCanvas(80), h('div.unit-info', {}, h('div', {}, `עולם ${i + 1} מתוך ${UNITS.length}${u.grade ? ' · כיתה ' + u.grade + ' · ' + u.level : ''}`),
+      h('small', {}, u.grammar ? h('span', { dir: 'ltr' }, u.grammar.rule) : `${u.words.length} מילים · ${u.sentences.length} משפטים · סיפור`)),
+      u.grammar ? h('button.btn.arcade', { onclick: () => go('#/arcade/' + i), title: 'בונוס – לא חובה' }, '🕹️ ארקייד (בונוס)') : null),
     list);
 }
 
@@ -194,7 +205,7 @@ function results({ unit, k, stars, coins, xp, title, score }) {
       h('button.btn.primary', { onclick: () => { box.remove(); go(unit ? '#/unit/' + unitIdx(unit.id) : '#/'); } }, 'המשך ←'))));
   document.body.append(box);
   say(stars === 3 ? 'Perfect!' : 'Well done!', 'en');
-  if (!unit) { s.stats.reviews = (s.stats.reviews || 0) + 1; S.save(); }
+  if (!unit && title?.startsWith('חזרה')) { s.stats.reviews = (s.stats.reviews || 0) + 1; S.save(); }
   announceBadges();
 }
 
@@ -277,6 +288,50 @@ function runStage({ unit, k, events, theme, seed, difficulty, pool, title, boss 
   music(theme);
 }
 
+// ---------- challenge mode (12+): timed rounds with combos and medals
+async function rushStage(u, k, qs, opts) {
+  clear(); document.body.className = 'rush-bg';
+  const i = unitIdx(u.id);
+  const r = await runRush(app, qs, { ...opts, onExit: () => go('#/unit/' + i) });
+  if (!document.body.classList.contains('rush-bg')) return;          // the player left mid-round
+  const stars = opts.boss && !r.beaten ? 0 : r.ratio >= 0.85 ? 3 : r.ratio >= 0.7 ? 2 : r.ratio >= 0.5 ? 1 : 0;
+  S.addPoints(r.score); S.addXp(Math.round(r.score / 20));
+  const st = S.st().stats; if (opts.boss && r.beaten) st.bosses = (st.bosses || 0) + 1; st.bestCombo = Math.max(st.bestCombo || 0, r.bestCombo); S.save();
+  const better = S.finishStage(u.id, k, stars, Math.round(r.ratio * 100));
+  const box = h('div.modal-bg', {}, h('div.modal.result.rush-result', {},
+    h('div.medal', {}, r.medal.em), h('div.medal-name', { dir: 'ltr' }, r.medal.name),
+    h('div.r-stats', {},
+      h('div', {}, h('b', {}, r.score.toLocaleString()), h('small', {}, 'נקודות')),
+      h('div', {}, h('b', {}, Math.round(r.ratio * 100) + '%'), h('small', {}, 'דיוק')),
+      h('div', {}, h('b', {}, 'x' + Math.min(4, 1 + Math.floor(r.bestCombo / 2))), h('small', {}, `רצף שיא ${r.bestCombo}`))),
+    h('div.big-stars', {}, [0, 1, 2].map(n => h('span' + (n < stars ? '.on' : ''), { style: { animationDelay: n * 0.2 + 's' } }, '★'))),
+    h('p.note', {}, stars ? (better ? 'שיא חדש! ' : '') + 'השלב הבא נפתח.' : opts.boss ? 'הבוס עדיין עומד. עוד ניסיון?' : 'צריך לפחות 50% כדי להתקדם. עוד סיבוב?'),
+    h('div.row', {}, h('button.btn', { onclick: () => { box.remove(); route(); } }, '🔁 שוב'), h('button.btn.primary', { onclick: () => { box.remove(); go('#/unit/' + i); } }, 'המשך ←'))));
+  document.body.append(box);
+  if (r.ratio >= 0.85) confetti();
+  announceBadges();
+}
+function arcade(i) {
+  const u = UNITS[i]; if (!u?.grammar || !S.unitUnlocked(UNITS, i)) return go('#/');
+  const its = items[i], words = its.filter(x => !x.sent), pool = its;
+  const ws = weakFirst(words), sp = ws.filter(w => /^[a-z]{3,8}$/.test(w.en)).slice(0, 2);
+  const evs = shuffle([...sample(u.gaps, 8).map(g => ({ kind: 'block', ch: { kind: 'gap', item: gapItem(g) } })),
+    ...sample(u.transforms, 2).map(t => ({ kind: 'block', ch: { kind: 'transform', item: trItem(t) } }))]);
+  sp.forEach((it, j) => evs.splice(3 + j * 5, 0, { kind: 'spell', item: it }));
+  runStage({ unit: null, k: 0, events: evs, theme: u.theme, seed: hash(u.id + Date.now() % 97), difficulty: Math.min(0.85, 0.4 + i * 0.025), pool, title: 'ארקייד הושלם! 🕹️' });
+}
+function leaders() {
+  clear(); document.body.className = 'map-bg';
+  const rows = S.leaderboard(), medals = ['🥇', '🥈', '🥉'];
+  app.append(h('div.topbar', {}, h('button.btn.round.back', { onclick: () => go('#/') }, '→'), h('div.title', {}, '🏆 טבלת המשפחה – השבוע')),
+    h('p.note', {}, 'נקודות השבוע (ראשון עד שבת) של כל השחקנים במכשיר הזה. מתאפס בכל יום ראשון.'),
+    h('div.leaders', {}, rows.map((r, n) => {
+      const t = TRACKS[r.track] || TRACKS.kids, rk = S.rankFor(r.points);
+      return h('div.leader' + (r.me ? '.me' : ''), {}, h('span.lpos', {}, medals[n] || n + 1), h('div.lname', {}, h('b', {}, r.name), h('small', {}, `${t.em} ${t.name} · ${rk.em} ${rk.name}`)), h('b.lpts', {}, r.week.toLocaleString()));
+    })),
+    rows.length < 2 ? h('p.note', {}, 'רוצים תחרות? הוסיפו עוד שחקן (אח, אחות, הורה...) במסך "מי משחק?".') : null);
+}
+
 function wordEvents(list, n, mode) {
   return list.slice(0, n).map((it, i) => ({ kind: 'block', ch: { kind: kindFor(it, mode, i), item: it } }));
 }
@@ -301,21 +356,24 @@ function playStage(i, k) {
     clear(); document.body.className = 'cards-bg theme-' + u.theme;
     return testScreen(app, u, pool, { pick: sample, onExit: back, onDone: (st, xp, score) => results({ unit: u, k, stars: st, coins: st ? 10 + st * 5 : 0, xp, score }) });
   }
-  if (sid === 'grun') {
-    const gs = shuffle(u.gaps), ws = weakFirst(words), sp = ws.filter(w => /^[a-z]{3,8}$/.test(w.en)).slice(0, 2);
-    const ev = [...gs.slice(0, 8).map(g => ({ kind: 'block', ch: { kind: 'gap', item: gapItem(g) } })),
-      ...sample(u.transforms, 2).map(t => ({ kind: 'block', ch: { kind: 'transform', item: trItem(t) } })),
-      ...ws.filter(w => !sp.includes(w)).slice(0, 2).map((it, j) => ({ kind: 'block', ch: { kind: j ? 'he-en' : 'en-he', item: it } }))];
-    const evs = shuffle(ev);
-    sp.forEach((it, j) => evs.splice(3 + j * 5, 0, { kind: 'spell', item: it }));
-    return runStage({ unit: u, k, events: evs, theme: u.theme, seed: hash(u.id + k + Date.now() % 7), difficulty: diff, pool });
+  if (sid === 'rush') {
+    const qs = shuffle([...sample(u.gaps, 7).map(g => ({ kind: 'gap', item: gapItem(g) })), ...sample(u.transforms, 2).map(t => ({ kind: 'transform', item: trItem(t) })),
+      ...weakFirst(words).slice(0, 3).map((it, j) => ({ kind: j % 2 ? 'he-en' : 'en-he', item: it, pool }))]);
+    return rushStage(u, k, qs, { title: '⚡ Grammar Rush' });
+  }
+  if (sid === 'speak') {
+    const ss = weakFirst(sents.filter(x => !x.gap && x.en.split(' ').length <= 12));
+    const qs = [...ss.slice(0, 3).map(it => ({ kind: 'speak', item: it })), ...ss.slice(3, 5).map(it => ({ kind: 'read', item: it })), ...ss.slice(5, 7).map(it => ({ kind: 'build', item: it, pool }))];
+    return rushStage(u, k, qs, { title: '🎙️ Speak Up', timed: false });
   }
   if (sid === 'story') { clear(); document.body.className = 'cards-bg theme-' + u.theme; return storyScreen(app, u, { onDone: (st, xp) => done(st, xp, 15), onExit: back }); }
   if (sid === 'boss' && u.grammar) {
-    const rounds = shuffle([...sample(u.gaps, 3).map(g => ({ kind: 'gap', item: gapItem(g) })), ...sample(u.transforms, 2).map(t => ({ kind: 'transform', item: trItem(t) })),
-      ...sample(sents.filter(x => x.en.split(' ').length <= 9), 1).map(it => ({ kind: 'speak', item: it }))]);
+    // the final boss mixes this unit with earlier ones, so old grammar keeps coming back
+    const prev = UNITS.slice(Math.max(0, i - 3), i).filter(x => x.gaps);
+    const rounds = shuffle([...sample(u.gaps, 4).map(g => ({ kind: 'gap', item: gapItem(g) })), ...sample(u.transforms, 2).map(t => ({ kind: 'transform', item: trItem(t) })),
+      ...prev.flatMap(x => sample(x.gaps, 1)).slice(0, 2).map(g => ({ kind: 'gap', item: gapItem(g) }))]);
     const [em, name] = BOSSES[u.theme] || BOSSES.grass;
-    return runStage({ unit: u, k, events: rounds, theme: u.theme, seed: 1, difficulty: diff, pool, boss: { em, name } });
+    return rushStage(u, k, rounds, { title: '👑 Boss Rush', boss: { em, name } });
   }
   if (sid === 'boss') {
     const hard = i >= 10, ws = sample(words, 3), ssent = sample(sents.filter(x => x.en.split(' ').length <= 7), 2);
@@ -464,6 +522,8 @@ function route() {
   if (r === 'badges') return badgesScreen();
   if (r === 'players') return players();
   if (r === 'school') return schoolPage();
+  if (r === 'leaders') return leaders();
+  if (r === 'arcade') return arcade(+a);
   if (r === 'parent') return parent();
   home();
 }
