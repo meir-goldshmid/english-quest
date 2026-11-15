@@ -1,5 +1,6 @@
 // Prints every text the app speaks as JSON: [{ text, lang, voice }]. Used by make_audio.py.
 import { TRACKS } from '../js/curriculum.js';
+import { nikkudTexts } from '../js/nikkud_data.js';
 const EN = 'en-US-JennyNeural', GIRL = 'en-US-AnaNeural', BOY = 'en-US-AndrewNeural', HE = 'he-IL-HilaNeural';
 const GIRLS = new Set(['Maya', 'Lily', 'Noa', 'Yael']);
 const out = new Map();
@@ -21,4 +22,5 @@ for (const t of Object.values(TRACKS)) for (const u of t.units) {
 }
 'abcdefghijklmnopqrstuvwxyz'.split('').forEach(c => add(c, 'en'));
 ['Great job!', 'Awesome!', 'Super!', 'Well done!', 'Excellent!', 'You got it!', 'Fantastic!', 'Perfect!', "Hello! Let's play!", 'Great!'].forEach(t => add(t, 'en'));
+nikkudTexts().forEach(t => add(t, 'he'));
 console.log(JSON.stringify([...out.values()]));

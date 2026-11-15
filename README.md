@@ -9,7 +9,7 @@ An adventure game that teaches English to Hebrew-speaking kids and teens: talkin
 | Track | Ages / grades | Level | Worlds |
 |---|---|---|---|
 | 🧒 Kids | 8–10 · grades 3–5 | Pre-A1 → A1 | 48 worlds in two seasons: 1,045 words and 632 sentences, each world with a story and a reading (phonics) rule |
-| 🧑‍🎓 Middle school | 11–13 · grades 6–8 | A1 → A2 | 16 grammar worlds: plurals and articles, pronouns, present and past tenses, quantifiers, comparatives, future, modals, present perfect, gerunds, relative clauses, conditionals, passive, reported speech |
+| 🧑‍🎓 Middle school | 11–13 · grades 6–8 | A1 → A2 | 20 grammar worlds: plurals and articles, pronouns, present and past tenses, quantifiers, comparatives, future, modals, present perfect, gerunds, relative clauses, conditionals, passive, reported speech, somebody/anything/nowhere, too/enough/so/such, past perfect, make/let/help and phrasal verbs |
 | 🎓 High school & Bagrut | 14–16 · grades 9–11 | A2 → B1/B2 | 16 worlds: narrative and perfect tenses, passive, reported speech, conditionals 0–3, wish, modal perfect, future perfect, connectors, word formation, Bagrut-style unseen texts, writing |
 
 The in-game **🏫 מה לומדים בכיתה** page shows each Israeli school stage, its level (CEFR), the grammar taught there, and the worlds that practise it. Sources: the Ministry of Education [English Curriculum 2020](https://meyda.education.gov.il/files/Mazkirut_Pedagogit/English/Curriculum2020.pdf) for levels and grades (Tables 2 and 4), and the [Revised English Curriculum 2018](https://meyda.education.gov.il/files/Mazkirut_Pedagogit/English/curriculum2018.pdf) for the grammar lists per level.
@@ -40,6 +40,14 @@ A 3D lane runner (Three.js, loaded only when the mode opens): run through the po
 
 It needs internet the first time, to load the 3D library.
 
+### 🔤 Nikkud (Hebrew vowel marks, every player)
+A separate course for reading Hebrew with nikkud, in 11 lessons in the order first grade teaches it: kamatz, patach, hiriq, tsere, segol, holam, shuruk and kubutz, shva, the hataf vowels, dagesh with shin/sin, and whole sentences.
+- **Nikudi**, an animated talking dot, explains each mark. Its mouth takes the shape of each vowel (open for a, smile for i, round for o).
+- **Animation:** the mark falls onto a big letter (or pops in, for dagesh), then a row of letters says the new sound one by one.
+- **Colours:** each vowel sound has its own colour (a red, i green, e blue, o orange, u purple). It can be turned off on the nikkud screen.
+- **Parts of a lesson:** 🎬 meet, 👂 hear a syllable and choose it, 🧩 put the right mark under a letter, 🎧 hear a word and choose it, 📖 read a word and choose its picture, 📜 read a sentence and choose its picture. Words light up letter by letter (sentences word by word) as the voice reads them.
+- **Voices:** every line, syllable, word and sentence is recorded in Hebrew (edge-tts, Hila). Each word uses only marks taught so far: `node tools/check_nikkud.mjs` checks this.
+
 **Family leaderboard (🏆):** weekly points for every player on the device, reset each Sunday.
 
 ## The game
@@ -65,12 +73,13 @@ The 🎤 parts use the browser's Web Speech API (Chrome, Edge, Android, Safari o
 | File | What |
 |---|---|
 | `js/content.js`, `js/content2a.js`, `js/content2b.js` | Kids course: Season 1, and Season 2 in two parts |
-| `js/track_middle_*.js`, `js/track_teen_*.js` | Grammar tracks: rule, words, sentences, gaps, transforms and reading for each unit |
+| `js/track_middle_*.js` (a, b, c), `js/track_teen_*.js` | Grammar tracks: rule, words, sentences, gaps, transforms and reading for each unit |
 | `js/curriculum.js` | Combines the courses into tracks |
 | `js/school.js` | The school-grade comparison |
 | `js/game.js`, `js/levels.js` | Platformer engine, level generator and boss arena. All art is drawn in code. |
 | `js/challenges.js` | All challenge types, including gap, transform and read-aloud |
 | `js/rush.js` | Challenge mode: timer, combo, points, medals, Boss Rush |
+| `js/nikkud.js`, `js/nikkud_data.js`, `css/nikkud.css` | 🔤 Nikkud course: screens and animations, lessons and words |
 | `js/runner3d.js` | 3D lane runner (Three.js r160 from jsDelivr, loaded when opened) |
 | `js/screens.js` | Learn cards, story, grammar rule, reading and test |
 | `js/main.js` | Map, stages, players, review, shop, badges, parent area |

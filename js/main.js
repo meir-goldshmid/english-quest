@@ -134,6 +134,7 @@ function home() {
   const tiles = h('nav.tiles', {},
     dueN ? tile('🔁', `חזרה יומית · ${Math.min(dueN, 12)}`, () => go('#/review'), '.hot') : null,
     tile('🏃‍♂️', 'ריצה אינסופית 3D', () => go('#/endless'), '.run'),
+    tile('🔤', 'לומדים ניקוד', () => go('#/nikkud'), '.nik'),
     tile('🏆', 'טבלת המשפחה', () => go('#/leaders')),
     tile('🏅', `תגים ${badgeN}/${BADGES.length}`, () => go('#/badges')),
     neon() ? null : tile('🛒', 'חנות', () => go('#/shop')),
@@ -595,6 +596,16 @@ function parentPanel() {
 }
 
 // ---------- router
+// ---------- 🔤 nikkud (Hebrew vowel marks), loaded when opened
+let N = null;
+async function nikkud(r, a, b) {
+  N ||= await import('./nikkud.js');
+  const c = { app, go, after: announceBadges };
+  if (r === 'nikplay') return N.nikkudPlay(c, +a, +b);
+  if (a !== '') return N.nikkudLesson(c, +a);
+  N.nikkudMap(c);
+}
+
 function route() {
   const s = S.st();
   const m = location.hash.match(/^#\/?(\w*)\/?(\d*)\/?(\d*)/) || [];
@@ -606,7 +617,7 @@ function route() {
   }
   if (!S.currentProfile()) return welcome();
   setTrack();
-  stopMusic();
+  stopMusic(); N?.hush();
   const [, r, a, b] = m;
   if (r === 'unit') return unitScreen(+a);
   if (r === 'play') return playStage(+a, +b);
@@ -620,6 +631,7 @@ function route() {
   if (r === 'run3d') return run3d(+a);
   if (r === 'endless') return endlessRun();
   if (r === 'parent') return parent();
+  if (r === 'nikkud' || r === 'nikplay') return nikkud(r, a, b);
   home();
 }
 

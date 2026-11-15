@@ -28,6 +28,8 @@ export const BADGES = [
   { id: 'streak30', em: '🗓️', name: 'חודש של אנגלית', desc: 'שחק 30 ימים ברצף', test: () => streak() >= 30 },
   { id: 'review', em: '🔁', name: 'חוזר ולומד', desc: 'סיים 10 חזרות יומיות', test: s => (s.stats.reviews || 0) >= 10 },
   { id: 'rich', em: '💰', name: 'עשיר', desc: 'אסוף 500 מטבעות בבת אחת', test: s => s.coins >= 500 },
+  { id: 'nikkud1', em: '🔤', name: 'נקודה ראשונה', desc: 'סיים שלב ניקוד ראשון', test: s => Object.keys(s.nikkud || {}).length >= 1 },
+  { id: 'nikkud', em: '🎖️', name: 'אלוף הניקוד', desc: 'סיים את כל שיעורי הניקוד', test: s => !!s.nikkudDone },
   { id: 'style', em: '😎', name: 'סטייל', desc: 'קנה משהו בחנות', test: s => s.owned.length > 3 },
 ];
 

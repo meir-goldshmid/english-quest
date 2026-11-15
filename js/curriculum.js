@@ -5,6 +5,7 @@ import { UNITS_2A, PHONICS_S1A } from './content2a.js';
 import { UNITS_2B, PHONICS_S1B } from './content2b.js';
 import { UNITS_MA } from './track_middle_a.js';
 import { UNITS_MB } from './track_middle_b.js';
+import { UNITS_MC } from './track_middle_c.js';
 import { UNITS_TA } from './track_teen_a.js';
 import { UNITS_TB } from './track_teen_b.js';
 
@@ -16,7 +17,7 @@ const KIDS = [
 
 export const TRACKS = {
   kids: { id: 'kids', style: 'kids', em: '🧒', name: 'צעירים', ages: 'גילאי 8–10', grades: 'כיתות ג׳–ה׳', level: 'Pre-A1 → A1', blurb: 'מתחילים מאפס: מילים, צלילים, משפטים ודיבור', units: KIDS },
-  middle: { id: 'middle', style: 'neon', em: '🧑‍🎓', name: 'חטיבה', ages: 'גילאי 11–13', grades: 'כיתות ו׳–ח׳', level: 'A1 → A2', blurb: 'דקדוק בית הספר: רבים, זמנים, השוואות, סביל ועוד + מבחנים', units: [...UNITS_MA, ...UNITS_MB].map(u => ({ ...u, track: 'middle' })) },
+  middle: { id: 'middle', style: 'neon', em: '🧑‍🎓', name: 'חטיבה', ages: 'גילאי 11–13', grades: 'כיתות ו׳–ח׳', level: 'A1 → A2', blurb: 'דקדוק בית הספר: רבים, זמנים, השוואות, סביל, עבר מושלם, פעלים צירופיים ועוד + מבחנים', units: [...UNITS_MA, ...UNITS_MB, ...UNITS_MC].map(u => ({ ...u, track: 'middle' })) },
   teen: { id: 'teen', style: 'neon', em: '🎓', name: 'תיכון ובגרות', ages: 'גילאי 14–16', grades: 'כיתות ט׳–י״א', level: 'A2 → B1/B2', blurb: 'זמנים מתקדמים, תנאי, דיבור עקיף, מילות קישור, אנסין בסגנון בגרות', units: [...UNITS_TA, ...UNITS_TB].map(u => ({ ...u, track: 'teen' })) },
 };
 export const unitsFor = track => (TRACKS[track] || TRACKS.kids).units;

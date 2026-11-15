@@ -80,6 +80,8 @@ const FX = {
   gate: () => [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, { at: i * 0.07, vol: 0.05 })),
   win: () => [523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, { at: i * 0.12, vol: 0.06, type: 'triangle' })),
   pop: () => tone(880, 0.06, { type: 'sine', vol: 0.08 }),
+  drop: () => { tone(1500, 0.32, { type: 'sine', slide: -1150, vol: 0.05 }); tone(190, 0.14, { type: 'sine', slide: -70, at: 0.3, vol: 0.14 }); tone(950, 0.07, { type: 'triangle', at: 0.33, vol: 0.04 }); },
+  sparkle: () => [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, 0.12, { type: 'sine', at: i * 0.05, vol: 0.03 })),
   hit: () => { tone(120, 0.2, { type: 'square', slide: -60, vol: 0.1 }); tone(900, 0.08, { type: 'square', vol: 0.04 }); },
 };
 export function sfx(name) { if (!st().settings.sfx) return; try { FX[name]?.(); } catch (e) { } }

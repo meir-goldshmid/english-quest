@@ -17,7 +17,7 @@ export const SCHOOL = {
     {
       grades: 'כיתות ז׳–ט׳', cefr: 'A2', level: 'Basic User II · Intermediate (ביניים)', tracks: ['middle', 'teen'],
       topics: ['Present perfect, Past progressive, Past perfect', 'Modals: can/could/be able to, must/have to, should, may/might', 'Gerunds / infinitives, let / help / make', 'Passive: הווה, עבר, מתמשך ועם מודלים', 'משפטי זיקה (who/which/that, where/when/why)', 'תנאי ראשון ומשפטי זמן, דיבור עקיף, tag questions', 'used to, as…as, less/least, stative verbs'],
-      app: ['חטיבה · עולמות m09–m16 (מודלים, עבר מתמשך, Present perfect, gerunds, זיקה, תנאי, סביל, used to ודיבור עקיף)', 'תיכון · עולמות t01–t02, t05–t06'],
+      app: ['חטיבה · עולמות m09–m20 (מודלים, עבר מתמשך, Present perfect, gerunds, זיקה, תנאי, סביל, used to, דיבור עקיף, someone/anything, too/enough, Past perfect, make/let ופעלים צירופיים)', 'תיכון · עולמות t01–t02, t05–t06'],
     },
     {
       grades: 'כיתות י׳–י״ב · בגרות 3 יח״ל', cefr: 'A2+', level: 'Basic User II+', tracks: ['teen'],
