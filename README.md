@@ -48,6 +48,17 @@ A separate course for reading Hebrew with nikkud, in 11 lessons in the order fir
 - **Parts of a lesson:** 🎬 meet, 👂 hear a syllable and choose it, 🧩 put the right mark under a letter, 🎧 hear a word and choose it, 📖 read a word and choose its picture, 📜 read a sentence and choose its picture. Words light up letter by letter (sentences word by word) as the voice reads them.
 - **Voices:** every line, syllable, word and sentence is recorded in Hebrew (edge-tts, Hila). Each word uses only marks taught so far: `node tools/check_nikkud.mjs` checks this.
 
+### 🧩 Fun English (every player)
+Grammar for young kids, explained by **Zibi**, a small green alien from planet Zorp who is learning English too. Each lesson opens with an animated scene, then short games.
+- **a or an?** "a" and "apple" crash into each other 💥, then an "n" drops in as a bridge. Games: 🧺 sort words into the a or an basket, ✏️ fill the blank.
+- **a/an detectives:** look only at the next word (an apple → a red apple), a/an fly away for plurals, an hour / a unicorn. Games: fill the blank (a, an or nothing), 🕵️ find the wrong word.
+- **Building a sentence:** a sentence is a train with colour-coded cars (who, does, a/an, how, what). Games: 🚂 tap the words in order, 📍 tap where a/an sits.
+- **Pronouns:** I, you, he, she, it, then we, they, you, as funny animated characters ("Is pizza a she? No! Pizza is an it!"). Games: 🎭 who is it, 🧠 memory, 🪄 swap a name for a pronoun (Dana → She).
+- **am / is / are** with a chant, **my / your / his / her / our / their**, and **me / him / her / us / them**.
+- **Word packs:** 8 picture packs of 8 words (fruit, animals, my room, clothes, body, party, transport, people), always open. Games: 🃏 flip cards (English, then Hebrew), 🎈 hear a word and pop its balloon, 🧠 memory.
+
+Grammar lessons open in order; word packs are open from the start. Every line is recorded (English: Jenny, Hebrew: Hila).
+
 **Family leaderboard (🏆):** weekly points for every player on the device, reset each Sunday.
 
 ## The game
@@ -80,6 +91,7 @@ The 🎤 parts use the browser's Web Speech API (Chrome, Edge, Android, Safari o
 | `js/challenges.js` | All challenge types, including gap, transform and read-aloud |
 | `js/rush.js` | Challenge mode: timer, combo, points, medals, Boss Rush |
 | `js/nikkud.js`, `js/nikkud_data.js`, `css/nikkud.css` | 🔤 Nikkud course: screens and animations, lessons and words |
+| `js/fun.js`, `js/fun_data.js`, `css/fun.css` | 🧩 Fun English: Zibi, scenes and games, lessons and word packs |
 | `js/runner3d.js` | 3D lane runner (Three.js r160 from jsDelivr, loaded when opened) |
 | `js/screens.js` | Learn cards, story, grammar rule, reading and test |
 | `js/main.js` | Map, stages, players, review, shop, badges, parent area |

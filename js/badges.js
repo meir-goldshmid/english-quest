@@ -30,6 +30,8 @@ export const BADGES = [
   { id: 'rich', em: '💰', name: 'עשיר', desc: 'אסוף 500 מטבעות בבת אחת', test: s => s.coins >= 500 },
   { id: 'nikkud1', em: '🔤', name: 'נקודה ראשונה', desc: 'סיים שלב ניקוד ראשון', test: s => Object.keys(s.nikkud || {}).length >= 1 },
   { id: 'nikkud', em: '🎖️', name: 'אלוף הניקוד', desc: 'סיים את כל שיעורי הניקוד', test: s => !!s.nikkudDone },
+  { id: 'fun1', em: '👽', name: 'חבר של זיבי', desc: 'סיים שלב ראשון באנגלית בכיף', test: s => Object.keys(s.fun || {}).length >= 1 },
+  { id: 'fun', em: '🧩', name: 'אלוף הדקדוק', desc: 'סיים את כל שיעורי הדקדוק באנגלית בכיף', test: s => !!s.funDone },
   { id: 'style', em: '😎', name: 'סטייל', desc: 'קנה משהו בחנות', test: s => s.owned.length > 3 },
 ];
 

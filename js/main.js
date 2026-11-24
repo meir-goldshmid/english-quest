@@ -134,6 +134,7 @@ function home() {
   const tiles = h('nav.tiles', {},
     dueN ? tile('🔁', `חזרה יומית · ${Math.min(dueN, 12)}`, () => go('#/review'), '.hot') : null,
     tile('🏃‍♂️', 'ריצה אינסופית 3D', () => go('#/endless'), '.run'),
+    tile('🧩', 'אנגלית בכיף', () => go('#/fun'), '.fun'),
     tile('🔤', 'לומדים ניקוד', () => go('#/nikkud'), '.nik'),
     tile('🏆', 'טבלת המשפחה', () => go('#/leaders')),
     tile('🏅', `תגים ${badgeN}/${BADGES.length}`, () => go('#/badges')),
@@ -606,6 +607,16 @@ async function nikkud(r, a, b) {
   N.nikkudMap(c);
 }
 
+// ---------- 🧩 fun English (a / an, sentences, pronouns, word packs), loaded when opened
+let F = null;
+async function fun(r, a, b) {
+  F ||= await import('./fun.js');
+  const c = { app, go, after: announceBadges };
+  if (r === 'funplay') return F.funPlay(c, +a, +b);
+  if (a !== '') return F.funLesson(c, +a);
+  F.funMap(c);
+}
+
 function route() {
   const s = S.st();
   const m = location.hash.match(/^#\/?(\w*)\/?(\d*)\/?(\d*)/) || [];
@@ -617,7 +628,7 @@ function route() {
   }
   if (!S.currentProfile()) return welcome();
   setTrack();
-  stopMusic(); N?.hush();
+  stopMusic(); N?.hush(); F?.hush();
   const [, r, a, b] = m;
   if (r === 'unit') return unitScreen(+a);
   if (r === 'play') return playStage(+a, +b);
@@ -632,6 +643,7 @@ function route() {
   if (r === 'endless') return endlessRun();
   if (r === 'parent') return parent();
   if (r === 'nikkud' || r === 'nikplay') return nikkud(r, a, b);
+  if (r === 'fun' || r === 'funplay') return fun(r, a, b);
   home();
 }
 
